@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { SlideDocument, SlideData } from '@/types/api';
+import Link from 'next/link';
+import { SlideData } from '@/types/api';
 
 export default function SlideView() {
   const params = useParams();
@@ -12,27 +13,7 @@ export default function SlideView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSlides();
-  }, [taskId]);
-
-  // キーボードナビゲーション
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        prevSlide();
-      } else if (e.key === 'ArrowRight') {
-        nextSlide();
-      } else if (e.key === 'Escape') {
-        window.location.href = '/';
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentSlide, slides.length]);
-
-  const fetchSlides = async () => {
+  const fetchSlides = useCallback(async () => {
     try {
       const response = await fetch(`/api/v1/tasks/${taskId}`);
       if (!response.ok) {
@@ -52,19 +33,39 @@ export default function SlideView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [taskId]);
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     }
-  };
+  }, [currentSlide, slides.length]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     if (currentSlide > 0) {
       setCurrentSlide(currentSlide - 1);
     }
-  };
+  }, [currentSlide]);
+
+  useEffect(() => {
+    fetchSlides();
+  }, [fetchSlides]);
+
+  // キーボードナビゲーション
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        prevSlide();
+      } else if (e.key === 'ArrowRight') {
+        nextSlide();
+      } else if (e.key === 'Escape') {
+        window.location.href = '/';
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [nextSlide, prevSlide]);
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
@@ -86,9 +87,9 @@ export default function SlideView() {
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <p className="text-red-600">{error}</p>
-          <a href="/" className="mt-4 inline-block text-blue-600 hover:underline">
+          <Link href="/" className="mt-4 inline-block text-blue-600 hover:underline">
             ホームに戻る
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -206,7 +207,7 @@ export default function SlideView() {
         </div>
 
         {/* 戻るボタン */}
-        <a
+        <Link
           href="/"
           className="absolute top-8 left-8 text-gray-400 hover:text-white flex items-center space-x-2"
         >
@@ -214,7 +215,7 @@ export default function SlideView() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span>ホームに戻る</span>
-        </a>
+        </Link>
       </div>
 
       {/* キーボードショートカット情報 */}

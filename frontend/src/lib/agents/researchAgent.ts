@@ -27,7 +27,18 @@ export class ResearchAgent {
   ): Promise<ResearchResult[]> {
     const results: ResearchResult[] = [];
 
-    for (const query of section.researchQueries) {
+    // researchQueriesが配列でない場合のフォールバック
+    const queries = Array.isArray(section.researchQueries) 
+      ? section.researchQueries 
+      : [];
+
+    if (queries.length === 0) {
+      console.warn(`[ResearchAgent] No research queries for section: ${section.title}`);
+      // デフォルトクエリを使用
+      queries.push(section.title);
+    }
+
+    for (const query of queries) {
       try {
         // Web検索をシミュレート（実際の実装では外部APIを使用）
         const searchResults = await this.simulateWebSearch(query);

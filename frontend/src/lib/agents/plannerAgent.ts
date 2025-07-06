@@ -2,10 +2,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { LLMChain } from 'langchain/chains';
 import { 
-  AgentState, 
   ResearchPlan, 
-  PlanSection, 
-  AgentType,
   DEFAULT_AGENT_CONFIG 
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +21,7 @@ export class PlannerAgent {
 
   async createResearchPlan(prompt: string, fileContent?: string): Promise<ResearchPlan> {
     const planPrompt = PromptTemplate.fromTemplate(`
-あなたは優秀なリサーチプランナーです。ユーザーの要求を分析し、包括的なスライド作成のためのリサーチ計画を立案してください。
+あなたは優秀なリサーチプランナーです。ユーザーの要求を分析し、柔軟で包括的なスライド作成のためのリサーチ計画を立案してください。
 
 ユーザーの要求: {prompt}
 
@@ -33,13 +30,21 @@ export class PlannerAgent {
 以下の構造でリサーチ計画を作成してください：
 
 1. 全体の目標を明確に定義
-2. 必要な情報収集セクションを特定（3-5セクション）
+2. トピックの複雑さと重要性に応じて、適切な数のセクションを特定（3-7セクション程度）
 3. 各セクションごとに：
    - タイトル
    - 説明
-   - 検索クエリ（2-3個）
+   - 検索クエリ（2-4個、重要度に応じて調整）
    - 期待される内容
    - 優先度（high/medium/low）
+   - 推定スライド数（1-3枚、情報量に応じて）
+   - 分割戦略（情報が多い場合の対処法）
+
+重要な考慮事項：
+- 重要なトピックは複数スライドに分割可能
+- 簡潔な情報は1スライドにまとめる
+- リサーチ結果次第でスライド数は調整可能
+- 全体で10-15枚程度が理想的だが、内容に応じて柔軟に
 
 回答はJSON形式のみで返してください：
 {{
@@ -50,7 +55,9 @@ export class PlannerAgent {
       "description": "このセクションの目的",
       "researchQueries": ["検索クエリ1", "検索クエリ2"],
       "expectedContent": ["期待される内容1", "期待される内容2"],
-      "priority": "high"
+      "priority": "high",
+      "estimatedSlides": 2,
+      "splitStrategy": "重要ポイントごとに分割"
     }}
   ]
 }}
@@ -80,13 +87,23 @@ export class PlannerAgent {
       const plan: ResearchPlan = {
         id: uuidv4(),
         objective: planData.objective,
-        sections: planData.sections.map((section: any) => ({
+        sections: planData.sections.map((section: {
+          title: string;
+          description: string;
+          researchQueries: string[];
+          expectedContent: string[];
+          priority: 'high' | 'medium' | 'low';
+          estimatedSlides?: number;
+          splitStrategy?: string;
+        }) => ({
           id: uuidv4(),
           title: section.title,
           description: section.description,
           researchQueries: section.researchQueries,
           expectedContent: section.expectedContent,
           priority: section.priority,
+          estimatedSlides: section.estimatedSlides || 1,
+          splitStrategy: section.splitStrategy || '必要に応じて分割',
         })),
         createdAt: new Date(),
         status: 'draft',
@@ -141,13 +158,23 @@ export class PlannerAgent {
       const refinedPlan: ResearchPlan = {
         ...currentPlan,
         objective: refinedData.objective || currentPlan.objective,
-        sections: refinedData.sections?.map((section: any) => ({
+        sections: refinedData.sections?.map((section: {
+          title: string;
+          description: string;
+          researchQueries?: string[];
+          expectedContent?: string[];
+          priority?: 'high' | 'medium' | 'low';
+          estimatedSlides?: number;
+          splitStrategy?: string;
+        }) => ({
           id: uuidv4(),
           title: section.title,
           description: section.description,
-          researchQueries: section.researchQueries,
-          expectedContent: section.expectedContent,
-          priority: section.priority,
+          researchQueries: section.researchQueries || [],
+          expectedContent: section.expectedContent || [],
+          priority: section.priority || 'medium',
+          estimatedSlides: section.estimatedSlides || 1,
+          splitStrategy: section.splitStrategy || '必要に応じて分割',
         })) || currentPlan.sections,
         status: 'draft',
       };

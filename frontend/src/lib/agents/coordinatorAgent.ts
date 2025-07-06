@@ -3,13 +3,13 @@ import { ResearchAgent } from './researchAgent';
 import { WriterAgent } from './writerAgent';
 import { 
   AgentState, 
-  ResearchPlan, 
   ResearchResult,
-  SlideDraft,
   SlideDocument,
   SlideData,
   Message,
-  AgentType
+  AgentType,
+  ContentAllocation,
+  PlanSection
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -38,7 +38,7 @@ export class CoordinatorAgent {
     };
   }
 
-  private addMessage(from: AgentType, to: AgentType, content: string, metadata?: any) {
+  private addMessage(from: AgentType, to: AgentType, content: string, metadata?: Record<string, unknown>) {
     const message: Message = {
       id: uuidv4(),
       from,
@@ -146,7 +146,7 @@ export class CoordinatorAgent {
     }
 
     this.state.currentPlan!.status = 'approved';
-    this.addMessage('planner', 'coordinator', '計画が承認されました');
+    this.addMessage('planner', 'coordinator', `計画が承認されました - ${this.state.currentPlan!.sections.length}セクション、推定${this.state.currentPlan!.sections.reduce((sum, s) => sum + (s.estimatedSlides || 1), 0)}枚のスライド`);
   }
 
   private async detailedResearchPhase(fileContent?: string): Promise<void> {
@@ -156,25 +156,33 @@ export class CoordinatorAgent {
 
     const plan = this.state.currentPlan;
     
-    // 全セクションのリサーチを並列実行
-    const researchPromises = plan.sections.map(async (section) => {
-      this.addMessage('coordinator', 'researcher', 
-        `「${section.title}」のリサーチを開始してください`
-      );
-
-      const sectionResults = await this.researchAgent.conductResearch(
-        section,
-        fileContent
-      );
-
-      return sectionResults;
-    });
-
-    // 全てのリサーチ結果を待機
-    const allResults = await Promise.all(researchPromises);
+    // 並列実行数を制限（3つずつ）
+    const batchSize = 3;
+    const allResults: ResearchResult[] = [];
     
-    // 結果をフラット化して保存
-    this.state.researchResults = allResults.flat();
+    for (let i = 0; i < plan.sections.length; i += batchSize) {
+      const batch = plan.sections.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (section) => {
+        this.addMessage('coordinator', 'researcher', 
+          `「${section.title}」のリサーチを開始してください`
+        );
+
+        const sectionResults = await this.researchAgent.conductResearch(
+          section,
+          fileContent
+        );
+
+        return sectionResults;
+      });
+
+      // バッチごとに結果を待機
+      const batchResults = await Promise.all(batchPromises);
+      allResults.push(...batchResults.flat());
+    }
+    
+    // 結果を保存
+    this.state.researchResults = allResults;
 
     // リサーチ品質の評価
     const qualityEvaluation = await this.researchAgent.evaluateResearchQuality(
@@ -234,14 +242,17 @@ export class CoordinatorAgent {
     );
   }
 
-  private isRelevantToSection(content: string, section: PlanSection): boolean {
+  private isRelevantToSection(content: string | unknown, section: PlanSection): boolean {
+    // contentが文字列であることを確認
+    const contentStr = typeof content === 'string' ? content : String(content);
+    
     // セクションのキーワードとの関連性をチェック
     const keywords = [
       ...section.title.toLowerCase().split(' '),
       ...section.expectedContent.map(e => e.toLowerCase()),
     ];
     
-    const contentLower = content.toLowerCase();
+    const contentLower = contentStr.toLowerCase();
     return keywords.some(keyword => contentLower.includes(keyword));
   }
 
@@ -258,13 +269,16 @@ export class CoordinatorAgent {
       .sort((a, b) => b.confidence - a.confidence);
     
     highConfidenceResults.forEach(result => {
-      const summaryPoints = result.summary.split('\n').filter(p => p.trim());
+      // summaryが文字列であることを確認
+      const summary = typeof result.summary === 'string' ? result.summary : String(result.summary);
+      const summaryPoints = summary.split('\n').filter(p => p.trim());
       points.push(...summaryPoints.slice(0, 3)); // 各結果から最大3ポイント
     });
 
     // 初期リサーチからも関連ポイントを追加
     initialResults.forEach(result => {
-      const relevantPoints = result.summary.split('\n')
+      const summary = typeof result.summary === 'string' ? result.summary : String(result.summary);
+      const relevantPoints = summary.split('\n')
         .filter(p => p.trim() && !points.includes(p));
       points.push(...relevantPoints.slice(0, 2));
     });
@@ -297,8 +311,15 @@ export class CoordinatorAgent {
     allSections.forEach(section => {
       if (section.id !== currentSection.id) {
         // 共通のキーワードやテーマを探す
-        const commonQueries = currentSection.researchQueries.filter(
-          q => section.researchQueries.some(sq => 
+        const currentQueries = Array.isArray(currentSection.researchQueries) 
+          ? currentSection.researchQueries 
+          : [];
+        const sectionQueries = Array.isArray(section.researchQueries) 
+          ? section.researchQueries 
+          : [];
+          
+        const commonQueries = currentQueries.filter(
+          q => sectionQueries.some(sq => 
             sq.toLowerCase().includes(q.toLowerCase()) || 
             q.toLowerCase().includes(sq.toLowerCase())
           )
@@ -340,10 +361,17 @@ export class CoordinatorAgent {
     };
     slides.push(tocSlide);
 
-    // 各セクションのスライド作成を並列実行
-    const slidePromises = this.state.currentPlan.sections.map(async (section) => {
+    // 各セクションのスライド作成をバッチで実行（メモリ効率のため）
+    // Arrow関数を使用してthisのコンテキストを保持
+    const contentSlides: SlideData[] = [];
+    const batchSize = 2; // 2セクションずつ処理
+    
+    for (let i = 0; i < this.state.currentPlan.sections.length; i += batchSize) {
+      const batch = this.state.currentPlan.sections.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (section) => {
       this.addMessage('coordinator', 'writer', 
-        `「${section.title}」のスライドを作成してください`
+        `「${section.title}」のスライドを作成してください（推定${section.estimatedSlides || 1}枚）`
       );
 
       // セクションに関連するリサーチ結果を取得
@@ -356,32 +384,58 @@ export class CoordinatorAgent {
         a => a.sectionId === section.id
       );
 
-      // ドラフト作成（割り振られたコンテンツを考慮）
-      const draft = await this.writerAgent.createSlideDraftWithAllocation(
-        section.id,
-        section.title,
-        sectionResearch,
-        allocation
-      );
-
-      this.state.drafts.push(draft);
-
-      // ドラフトをスライドに変換
-      const slide = await this.writerAgent.convertToSlide(
-        draft,
-        'content'
-      );
-      
-      // コンテンツが空の場合はドラフトの内容を使用
-      if (!slide.content || slide.content.trim() === '') {
-        slide.content = draft.content;
+      // 情報量に応じてスライド数を決定
+      let shouldSplit = false;
+      try {
+        shouldSplit = this.shouldSplitIntoMultipleSlides(
+          sectionResearch, 
+          allocation, 
+          section
+        );
+      } catch (error) {
+        console.error('[CoordinatorAgent] Error checking split:', error);
+        // エラー時はデフォルト動作（単一スライド）
+        shouldSplit = false;
       }
 
-      return slide;
-    });
+      if (shouldSplit) {
+        // 複数スライドに分割
+        return await this.createMultipleSlidesForSection(
+          section,
+          sectionResearch,
+          allocation
+        );
+      } else {
+        // 単一スライドとして作成
+        const draft = await this.writerAgent.createSlideDraftWithAllocation(
+          section.id,
+          section.title,
+          sectionResearch,
+          allocation
+        );
 
-    // 全てのスライド作成を待機
-    const contentSlides = await Promise.all(slidePromises);
+        this.state.drafts.push(draft);
+
+        const slide = await this.writerAgent.convertToSlide(
+          draft,
+          'content'
+        );
+        
+        if (!slide.content || slide.content.trim() === '') {
+          slide.content = draft.content;
+        }
+
+        return [slide];
+      }
+      });
+
+      // バッチごとにスライド作成を待機
+      const batchSlidesArrays = await Promise.all(batchPromises);
+      const batchSlides = batchSlidesArrays.flat();
+      contentSlides.push(...batchSlides);
+    }
+    
+    // 作成したスライドを追加
     slides.push(...contentSlides);
 
     // まとめスライドの作成
@@ -455,31 +509,43 @@ export class CoordinatorAgent {
     totalSteps: number;
     currentAction: string;
   } {
-    const totalSteps = 4; // Planning, Research, Writing, Finalization
+    const totalSteps = 6; // Initial Research, Planning, Detailed Research, Allocation, Writing, Finalization
     let completedSteps = 0;
     let phase = 'initializing';
     let currentAction = '初期化中...';
 
-    if (this.state.currentPlan) {
+    if (this.state.initialResearchResults && this.state.initialResearchResults.length > 0) {
       completedSteps = 1;
+      phase = 'initial_research';
+      currentAction = '初期リサーチ完了';
+    }
+
+    if (this.state.currentPlan) {
+      completedSteps = 2;
       phase = 'planning';
-      currentAction = '計画立案完了';
+      currentAction = '構成立案完了';
     }
 
     if (this.state.researchResults.length > 0) {
-      completedSteps = 2;
-      phase = 'researching';
-      currentAction = 'リサーチ実行中...';
+      completedSteps = 3;
+      phase = 'detailed_research';
+      currentAction = '詳細リサーチ完了';
+    }
+
+    if (this.state.contentAllocation && this.state.contentAllocation.length > 0) {
+      completedSteps = 4;
+      phase = 'content_allocation';
+      currentAction = 'コンテンツ割り振り完了';
     }
 
     if (this.state.drafts.length > 0) {
-      completedSteps = 3;
+      completedSteps = 5;
       phase = 'writing';
       currentAction = 'スライド作成中...';
     }
 
     if (this.state.finalSlides) {
-      completedSteps = 4;
+      completedSteps = 6;
       phase = 'completed';
       currentAction = '完了';
     }
@@ -490,6 +556,97 @@ export class CoordinatorAgent {
       totalSteps,
       currentAction,
     };
+  }
+
+  private shouldSplitIntoMultipleSlides(
+    research: ResearchResult[],
+    allocation?: ContentAllocation,
+    section?: PlanSection
+  ): boolean {
+    // 情報量の判定基準
+    const mainPointsCount = allocation?.allocatedContent.mainPoints.length || 0;
+    const detailsCount = allocation?.allocatedContent.supportingDetails.length || 0;
+    const totalInfoPoints = mainPointsCount + detailsCount;
+    
+    // 推定スライド数が2以上
+    if (section?.estimatedSlides && section.estimatedSlides >= 2) {
+      return true;
+    }
+    
+    // 情報量が多い（5ポイント以上）
+    if (totalInfoPoints >= 5) {
+      return true;
+    }
+    
+    // 優先度が高く、リサーチ結果が豊富
+    if (section?.priority === 'high' && research.length >= 3) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  private async createMultipleSlidesForSection(
+    section: PlanSection,
+    research: ResearchResult[],
+    allocation?: ContentAllocation
+  ): Promise<SlideData[]> {
+    const slides: SlideData[] = [];
+    const mainPoints = allocation?.allocatedContent.mainPoints || [];
+    const supportingDetails = allocation?.allocatedContent.supportingDetails || [];
+    
+    // メインポイントを分割
+    const pointsPerSlide = Math.ceil(mainPoints.length / (section.estimatedSlides || 2));
+    const slideSets: { points: string[]; details: string[] }[] = [];
+    
+    for (let i = 0; i < mainPoints.length; i += pointsPerSlide) {
+      const slidePoints = mainPoints.slice(i, i + pointsPerSlide);
+      const slideDetails = supportingDetails.slice(
+        i * 2, 
+        (i + pointsPerSlide) * 2
+      );
+      slideSets.push({ points: slidePoints, details: slideDetails });
+    }
+    
+    // 各スライドセットに対してスライドを作成
+    for (let i = 0; i < slideSets.length; i++) {
+      const slideSet = slideSets[i];
+      const slideTitle = slideSets.length > 1 
+        ? `${section.title} (${i + 1}/${slideSets.length})`
+        : section.title;
+      
+      // 各サブセクション用の仮想allocation
+      const subAllocation: ContentAllocation = {
+        sectionId: section.id,
+        allocatedContent: {
+          mainPoints: slideSet.points,
+          supportingDetails: slideSet.details,
+          connections: allocation?.allocatedContent.connections || [],
+        },
+      };
+      
+      const draft = await this.writerAgent.createSlideDraftWithAllocation(
+        section.id,
+        slideTitle,
+        research.slice(i * 2, (i + 1) * 2), // 関連するリサーチ結果も分割
+        subAllocation
+      );
+      
+      this.state.drafts.push(draft);
+      
+      const slide = await this.writerAgent.convertToSlide(
+        draft,
+        'content'
+      );
+      
+      if (!slide.content || slide.content.trim() === '') {
+        slide.content = draft.content;
+      }
+      
+      slides.push(slide);
+    }
+    
+    return slides;
   }
 
   getDetailedProgress(): {
@@ -522,31 +679,90 @@ export class CoordinatorAgent {
       content: string;
       timestamp: Date;
     }>;
+    detailedStats?: {
+      totalSections: number;
+      estimatedTotalSlides: number;
+      actualSlides: number;
+      researchQueries: number;
+      researchResults: number;
+      initialResearchCount: number;
+      allocatedContentPoints: number;
+    };
   } {
     const basicProgress = this.getProgress();
     
-    // 各エージェントの状態を判定
-    const plannerStatus = this.state.currentPlan 
-      ? 'completed' 
-      : this.state.messages.some(m => m.to === 'planner' && !m.metadata?.completed)
-        ? 'working' 
-        : 'idle';
+    // フェーズに基づいて各エージェントの状態を判定
+    let plannerStatus: 'idle' | 'working' | 'completed' = 'idle';
+    let plannerLastAction = '待機中';
+    let plannerProgress = 0;
     
-    const researcherStatus = this.state.researchResults.length > 0
-      ? 'completed'
-      : this.state.messages.some(m => m.to === 'researcher' && !m.metadata?.completed)
-        ? 'working'
-        : 'idle';
+    let researcherStatus: 'idle' | 'working' | 'completed' = 'idle';
+    let researcherLastAction = '待機中';
     
-    const writerStatus = this.state.finalSlides
-      ? 'completed'
-      : this.state.drafts.length > 0
-        ? 'working'
-        : 'idle';
+    let writerStatus: 'idle' | 'working' | 'completed' = 'idle';
+    let writerLastAction = '待機中';
 
-    // 最新のメッセージを取得（最大10件）
+    // フェーズごとの状態判定
+    switch (basicProgress.phase) {
+      case 'initial_research':
+        researcherStatus = this.state.initialResearchResults && this.state.initialResearchResults.length > 0 
+          ? 'completed' : 'working';
+        researcherLastAction = researcherStatus === 'completed' 
+          ? '初期リサーチ完了' : '初期リサーチ実行中...';
+        break;
+        
+      case 'planning':
+        researcherStatus = 'completed';
+        researcherLastAction = '初期リサーチ完了';
+        plannerStatus = this.state.currentPlan ? 'completed' : 'working';
+        plannerLastAction = plannerStatus === 'completed' 
+          ? '構成立案完了' : '初期リサーチ結果を基に構成立案中...';
+        plannerProgress = this.state.currentPlan ? 100 : 60;
+        break;
+        
+      case 'detailed_research':
+        plannerStatus = 'completed';
+        plannerLastAction = '構成立案完了';
+        plannerProgress = 100;
+        researcherStatus = this.state.researchResults.length > 0 ? 'completed' : 'working';
+        researcherLastAction = researcherStatus === 'completed' 
+          ? '詳細リサーチ完了' : '各セクションの詳細リサーチ実行中...';
+        break;
+        
+      case 'content_allocation':
+        plannerStatus = 'working';
+        plannerLastAction = 'コンテンツ割り振り中...';
+        plannerProgress = 80;
+        researcherStatus = 'completed';
+        researcherLastAction = '詳細リサーチ完了';
+        break;
+        
+      case 'writing':
+        plannerStatus = 'completed';
+        plannerLastAction = 'コンテンツ割り振り完了';
+        plannerProgress = 100;
+        researcherStatus = 'completed';
+        researcherLastAction = '詳細リサーチ完了';
+        writerStatus = this.state.drafts.length >= (this.state.currentPlan?.sections.length || 0) 
+          ? 'completed' : 'working';
+        writerLastAction = writerStatus === 'completed' 
+          ? 'スライド作成完了' : '割り振られたコンテンツを基にスライド作成中...';
+        break;
+        
+      case 'completed':
+        plannerStatus = 'completed';
+        plannerLastAction = 'コンテンツ割り振り完了';
+        plannerProgress = 100;
+        researcherStatus = 'completed';
+        researcherLastAction = '詳細リサーチ完了';
+        writerStatus = 'completed';
+        writerLastAction = 'スライド作成完了';
+        break;
+    }
+
+    // 最新のメッセージを取得（最大15件）
     const recentMessages = this.state.messages
-      .slice(-10)
+      .slice(-15)
       .map(m => ({
         from: m.from,
         to: m.to,
@@ -559,31 +775,39 @@ export class CoordinatorAgent {
       agents: {
         planner: {
           status: plannerStatus,
-          lastAction: this.state.currentPlan ? '計画立案完了' : '計画立案中...',
-          progress: this.state.currentPlan ? 100 : 50,
+          lastAction: plannerLastAction,
+          progress: plannerProgress,
         },
         researcher: {
           status: researcherStatus,
-          lastAction: researcherStatus === 'completed' 
-            ? 'リサーチ完了' 
-            : researcherStatus === 'working'
-              ? 'リサーチ実行中...'
-              : '待機中',
-          completedSections: this.state.researchResults.length,
+          lastAction: researcherLastAction,
+          completedSections: this.state.researchResults.filter((r, index, self) => 
+            self.findIndex(item => item.sectionId === r.sectionId) === index
+          ).length,
           totalSections: this.state.currentPlan?.sections.length || 0,
         },
         writer: {
           status: writerStatus,
-          lastAction: writerStatus === 'completed'
-            ? 'スライド作成完了'
-            : writerStatus === 'working'
-              ? 'スライド作成中...'
-              : '待機中',
+          lastAction: writerLastAction,
           completedSlides: this.state.drafts.length,
           totalSlides: this.state.currentPlan?.sections.length || 0,
         },
       },
       messages: recentMessages,
+      detailedStats: {
+        totalSections: this.state.currentPlan?.sections.length || 0,
+        estimatedTotalSlides: this.state.currentPlan?.sections.reduce((sum, s) => sum + (s.estimatedSlides || 1), 0) || 0,
+        actualSlides: this.state.finalSlides?.slides.length || this.state.drafts.length,
+        researchQueries: this.state.currentPlan?.sections.reduce((sum, s) => {
+          const queries = Array.isArray(s.researchQueries) ? s.researchQueries : [];
+          return sum + queries.length;
+        }, 0) || 0,
+        researchResults: this.state.researchResults.length,
+        initialResearchCount: this.state.initialResearchResults?.length || 0,
+        allocatedContentPoints: this.state.contentAllocation?.reduce((sum, a) => 
+          sum + a.allocatedContent.mainPoints.length + a.allocatedContent.supportingDetails.length, 0
+        ) || 0,
+      },
     };
   }
 }

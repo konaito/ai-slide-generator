@@ -7,6 +7,19 @@ interface AgentProgressDisplayProps {
 }
 
 export function AgentProgressDisplay({ progress }: AgentProgressDisplayProps) {
+  const getPhaseLabel = (phase: string): string => {
+    const phaseLabels: Record<string, string> = {
+      'initializing': '初期化',
+      'initial_research': '初期リサーチ',
+      'planning': '構成立案',
+      'detailed_research': '詳細リサーチ',
+      'content_allocation': 'コンテンツ割り振り',
+      'writing': 'スライド作成',
+      'completed': '完了',
+    };
+    return phaseLabels[phase] || phase;
+  };
+
   const getAgentStatusIcon = (status: 'idle' | 'working' | 'completed') => {
     switch (status) {
       case 'idle':
@@ -53,7 +66,12 @@ export function AgentProgressDisplay({ progress }: AgentProgressDisplayProps) {
             style={{ width: `${(progress.completedSteps / progress.totalSteps) * 100}%` }}
           />
         </div>
-        <p className="mt-2 text-sm text-gray-600">{progress.currentAction}</p>
+        <div className="mt-2">
+          <p className="text-sm text-gray-600">{progress.currentAction}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            フェーズ: {getPhaseLabel(progress.phase)}
+          </p>
+        </div>
       </div>
 
       {/* エージェントごとの状態 */}
@@ -115,12 +133,90 @@ export function AgentProgressDisplay({ progress }: AgentProgressDisplayProps) {
         </div>
       </div>
 
+      {/* ワークフロー進捗 */}
+      <div className="bg-white rounded-lg p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">ワークフロー詳細</h3>
+        <div className="space-y-2">
+          {[
+            { phase: 'initial_research', label: '1. 初期リサーチ', desc: 'トピック全体の概要把握' },
+            { phase: 'planning', label: '2. 構成立案', desc: '初期リサーチを基に構成作成' },
+            { phase: 'detailed_research', label: '3. 詳細リサーチ', desc: '各セクションの詳細調査' },
+            { phase: 'content_allocation', label: '4. コンテンツ割り振り', desc: '情報の整理と配分' },
+            { phase: 'writing', label: '5. スライド作成', desc: '割り振られた内容で執筆' },
+            { phase: 'completed', label: '6. 最終化', desc: 'トランジション生成' },
+          ].map((step, index) => {
+            const stepNumber = index + 1;
+            const isCompleted = progress.completedSteps >= stepNumber;
+            const isCurrent = progress.completedSteps === index;
+            
+            return (
+              <div key={step.phase} className="flex items-start space-x-3">
+                <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                  isCompleted ? 'bg-green-500 text-white' :
+                  isCurrent ? 'bg-blue-500 text-white animate-pulse' :
+                  'bg-gray-300 text-gray-600'
+                }`}>
+                  {isCompleted ? '✓' : stepNumber}
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${
+                    isCompleted ? 'text-green-700' :
+                    isCurrent ? 'text-blue-700' :
+                    'text-gray-500'
+                  }`}>
+                    {step.label}
+                  </p>
+                  <p className="text-xs text-gray-500">{step.desc}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 詳細統計 */}
+      {progress.detailedStats && (
+        <div className="bg-white rounded-lg p-4 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">詳細統計</h3>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-gray-500">セクション数:</span>
+              <span className="ml-2 font-medium text-gray-700">{progress.detailedStats.totalSections}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">推定スライド数:</span>
+              <span className="ml-2 font-medium text-gray-700">{progress.detailedStats.estimatedTotalSlides}枚</span>
+            </div>
+            <div>
+              <span className="text-gray-500">作成済みスライド:</span>
+              <span className="ml-2 font-medium text-gray-700">{progress.detailedStats.actualSlides}枚</span>
+            </div>
+            <div>
+              <span className="text-gray-500">リサーチクエリ数:</span>
+              <span className="ml-2 font-medium text-gray-700">{progress.detailedStats.researchQueries}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">リサーチ結果:</span>
+              <span className="ml-2 font-medium text-gray-700">{progress.detailedStats.researchResults}件</span>
+            </div>
+            <div>
+              <span className="text-gray-500">初期リサーチ:</span>
+              <span className="ml-2 font-medium text-gray-700">{progress.detailedStats.initialResearchCount}件</span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-gray-500">コンテンツポイント数:</span>
+              <span className="ml-2 font-medium text-gray-700">{progress.detailedStats.allocatedContentPoints}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* メッセージログ */}
       <div className="bg-white rounded-lg p-4 shadow-sm">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">エージェント間通信</h3>
         <div className="space-y-2 max-h-40 overflow-y-auto">
           {progress.messages.map((msg, index) => (
-            <div key={index} className="text-xs">
+            <div key={index} className="text-xs border-l-2 border-gray-200 pl-2">
               <span className="font-medium text-gray-600">{msg.from} → {msg.to}:</span>
               <span className="text-gray-500 ml-2">{msg.content}</span>
             </div>
