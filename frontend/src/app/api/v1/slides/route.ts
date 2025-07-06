@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const taskId = uuidv4();
     
     // タスクを作成
-    const task = taskStorage.createTask(taskId, prompt, file ? [file.name] : undefined);
+    taskStorage.createTask(taskId, prompt, file ? [file.name] : undefined);
     console.log(`[API] Created task: ${taskId}`);
     console.log(`[API] Task storage now has ${taskStorage.getAllTasks().length} tasks`);
 

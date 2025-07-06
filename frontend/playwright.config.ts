@@ -34,8 +34,8 @@ export default defineConfig({
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 60 * 1000,
-    env: {
-      ...process.env,
-    },
+    env: Object.fromEntries(
+      Object.entries(process.env).filter(([_, value]) => value !== undefined)
+    ) as { [key: string]: string },
   },
 });

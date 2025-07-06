@@ -22,7 +22,7 @@ export interface SlideData {
   id?: string;
   title: string;
   content?: string;
-  type: 'title' | 'content' | 'image' | 'chart';
+  type: 'title' | 'content' | 'image' | 'chart' | 'conclusion';
   image_url?: string;
   chart_data?: unknown;
   speakerNotes?: string;
@@ -69,6 +69,15 @@ export interface AgentProgress {
     content: string;
     timestamp: Date;
   }>;
+  detailedStats?: {
+    totalSections: number;
+    estimatedTotalSlides: number;
+    actualSlides: number;
+    researchQueries: number;
+    researchResults: number;
+    initialResearchCount: number;
+    allocatedContentPoints: number;
+  };
 }
 
 export interface Task {

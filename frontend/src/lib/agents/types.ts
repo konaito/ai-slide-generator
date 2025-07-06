@@ -26,7 +26,7 @@ export interface Message {
   to: AgentType;
   content: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type AgentType = 'planner' | 'researcher' | 'writer' | 'reviewer' | 'coordinator';
@@ -46,6 +46,8 @@ export interface PlanSection {
   researchQueries: string[];
   expectedContent: string[];
   priority: 'high' | 'medium' | 'low';
+  estimatedSlides?: number;
+  splitStrategy?: string;
 }
 
 export interface ResearchResult {
@@ -106,14 +108,14 @@ export interface SlideData {
 
 export interface VisualElement {
   type: 'image' | 'chart' | 'diagram';
-  data: any;
+  data: unknown;
   caption?: string;
 }
 
 // エージェントのアクション定義
 export interface AgentAction {
   type: string;
-  payload: any;
+  payload: unknown;
 }
 
 export interface PlannerActions {

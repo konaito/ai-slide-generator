@@ -18,7 +18,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
     if (!taskId) return;
 
     const pollTaskStatus = async () => {
-      const maxAttempts = 60;
+      const maxAttempts = 300; // 5分間に延長
       let attempts = 0;
 
       // 初回ポーリング前に少し待機（タスク作成を確実にするため）
