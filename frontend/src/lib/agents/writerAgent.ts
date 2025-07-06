@@ -6,6 +6,7 @@ import {
   ResearchResult, 
   SlideData,
   Feedback,
+  ContentAllocation,
   DEFAULT_AGENT_CONFIG 
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
@@ -234,6 +235,97 @@ JSON形式で返答：
         content: draft.content,
         type: slideType,
       };
+    }
+  }
+
+  async createSlideDraftWithAllocation(
+    sectionId: string,
+    sectionTitle: string,
+    researchResults: ResearchResult[],
+    allocation?: ContentAllocation
+  ): Promise<SlideDraft> {
+    const draftPrompt = PromptTemplate.fromTemplate(`
+あなたは優秀なプレゼンテーション作成の専門家です。
+以下のリサーチ結果とコンテンツ割り振りを基に、「{sectionTitle}」に関するスライドを作成してください。
+
+リサーチ結果:
+{researchSummaries}
+
+割り振られたコンテンツ:
+主要ポイント:
+{mainPoints}
+
+サポート詳細:
+{supportingDetails}
+
+他セクションとの関連:
+{connections}
+
+スライド作成のガイドライン：
+1. 主要ポイントを中心に構成
+2. サポート詳細で説得力を持たせる
+3. 他セクションとの関連性を意識
+4. 論理的な流れを保つ
+5. 視覚的要素の提案も含める
+
+JSON形式で返答してください：
+{{
+  "title": "スライドタイトル",
+  "content": "スライドの本文内容（構造化された箇条書き）",
+  "visualSuggestions": ["視覚要素の提案"],
+  "speakerNotes": "発表者用のメモ（他セクションとの繋がりを含む）",
+  "keyPoints": ["重要ポイント1", "重要ポイント2"]
+}}
+    `);
+
+    const chain = new LLMChain({
+      llm: this.llm,
+      prompt: draftPrompt,
+    });
+
+    try {
+      const researchSummaries = researchResults
+        .map(r => `[信頼度: ${r.confidence}] ${r.summary}`)
+        .join('\n\n');
+
+      const mainPoints = allocation?.allocatedContent.mainPoints.join('\n') || '情報なし';
+      const supportingDetails = allocation?.allocatedContent.supportingDetails.join('\n') || '情報なし';
+      const connections = allocation?.allocatedContent.connections.join('\n') || '他セクションとの関連なし';
+
+      const result = await chain.call({
+        sectionTitle,
+        researchSummaries,
+        mainPoints,
+        supportingDetails,
+        connections,
+      });
+
+      // JSONを解析
+      let jsonText = result.text;
+      const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[1].trim();
+      }
+      
+      const draftData = JSON.parse(jsonText);
+
+      const draft: SlideDraft = {
+        id: uuidv4(),
+        sectionId,
+        title: draftData.title || sectionTitle,
+        content: draftData.content,
+        version: 1,
+        feedback: [],
+        status: 'draft',
+      };
+
+      console.log(`[WriterAgent] Created slide draft with allocation for: ${sectionTitle}`);
+      return draft;
+
+    } catch (error) {
+      console.error('[WriterAgent] Failed to create slide draft with allocation:', error);
+      // フォールバック: 通常のドラフト作成
+      return this.createSlideDraft(sectionId, sectionTitle, researchResults);
     }
   }
 

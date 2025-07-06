@@ -3,10 +3,21 @@
 export interface AgentState {
   messages: Message[];
   currentPlan: ResearchPlan | null;
+  initialResearchResults?: ResearchResult[];
   researchResults: ResearchResult[];
+  contentAllocation?: ContentAllocation[];
   drafts: SlideDraft[];
   finalSlides: SlideDocument | null;
   errors: string[];
+}
+
+export interface ContentAllocation {
+  sectionId: string;
+  allocatedContent: {
+    mainPoints: string[];
+    supportingDetails: string[];
+    connections: string[];
+  };
 }
 
 export interface Message {

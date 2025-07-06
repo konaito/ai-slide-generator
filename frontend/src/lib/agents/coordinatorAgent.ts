@@ -53,20 +53,28 @@ export class CoordinatorAgent {
 
   async generateSlides(prompt: string, fileContent?: string): Promise<SlideDocument> {
     try {
-      // フェーズ1: 計画立案
-      console.log('\n=== Phase 1: Planning ===');
+      // フェーズ1: 初期リサーチ
+      console.log('\n=== Phase 1: Initial Research ===');
+      await this.initialResearchPhase(prompt, fileContent);
+
+      // フェーズ2: 構成立案
+      console.log('\n=== Phase 2: Planning with Context ===');
       await this.planningPhase(prompt, fileContent);
 
-      // フェーズ2: リサーチ
-      console.log('\n=== Phase 2: Research ===');
-      await this.researchPhase(fileContent);
+      // フェーズ3: 詳細リサーチ
+      console.log('\n=== Phase 3: Detailed Research ===');
+      await this.detailedResearchPhase(fileContent);
 
-      // フェーズ3: コンテンツ作成
-      console.log('\n=== Phase 3: Writing ===');
+      // フェーズ4: 構成割り振り
+      console.log('\n=== Phase 4: Content Allocation ===');
+      await this.contentAllocationPhase();
+
+      // フェーズ5: コンテンツ作成
+      console.log('\n=== Phase 5: Writing ===');
       await this.writingPhase();
 
-      // フェーズ4: 最終化
-      console.log('\n=== Phase 4: Finalization ===');
+      // フェーズ6: 最終化
+      console.log('\n=== Phase 6: Finalization ===');
       await this.finalizationPhase();
 
       if (!this.state.finalSlides) {
@@ -82,11 +90,43 @@ export class CoordinatorAgent {
     }
   }
 
-  private async planningPhase(prompt: string, fileContent?: string): Promise<void> {
-    this.addMessage('coordinator', 'planner', 'リサーチ計画を作成してください');
+  private async initialResearchPhase(prompt: string, fileContent?: string): Promise<void> {
+    this.addMessage('coordinator', 'researcher', '初期リサーチを実施してください');
 
-    // 初期計画の作成
-    const initialPlan = await this.plannerAgent.createResearchPlan(prompt, fileContent);
+    // トピックについての基本的な情報収集
+    const initialQuery = {
+      id: uuidv4(),
+      title: '初期調査',
+      description: 'トピック全体の概要と重要なポイントを把握',
+      researchQueries: [prompt],
+      expectedContent: ['概要', '主要トピック', '重要な側面'],
+      priority: 'high' as const,
+    };
+
+    const initialResults = await this.researchAgent.conductResearch(
+      initialQuery,
+      fileContent
+    );
+
+    // 初期リサーチ結果を保存
+    this.state.initialResearchResults = initialResults;
+    
+    this.addMessage('researcher', 'coordinator', 
+      `初期リサーチ完了: ${initialResults.length}件の結果`
+    );
+  }
+
+  private async planningPhase(prompt: string, fileContent?: string): Promise<void> {
+    this.addMessage('coordinator', 'planner', '初期リサーチ結果を踏まえて構成を立案してください');
+
+    // 初期リサーチ結果のコンテキストを作成
+    const initialContext = this.state.initialResearchResults
+      ?.map(r => r.summary)
+      .join('\n\n') || '';
+
+    // 初期計画の作成（初期リサーチ結果を考慮）
+    const contextualPrompt = `${prompt}\n\n初期リサーチ結果:\n${initialContext}`;
+    const initialPlan = await this.plannerAgent.createResearchPlan(contextualPrompt, fileContent);
     this.state.currentPlan = initialPlan;
 
     // 計画の評価
@@ -109,7 +149,7 @@ export class CoordinatorAgent {
     this.addMessage('planner', 'coordinator', '計画が承認されました');
   }
 
-  private async researchPhase(fileContent?: string): Promise<void> {
+  private async detailedResearchPhase(fileContent?: string): Promise<void> {
     if (!this.state.currentPlan) {
       throw new Error('リサーチ計画が存在しません');
     }
@@ -149,8 +189,128 @@ export class CoordinatorAgent {
     }
 
     this.addMessage('researcher', 'coordinator', 
-      `リサーチ完了: ${this.state.researchResults.length}件の結果`
+      `詳細リサーチ完了: ${this.state.researchResults.length}件の結果`
     );
+  }
+
+  private async contentAllocationPhase(): Promise<void> {
+    if (!this.state.currentPlan || this.state.researchResults.length === 0) {
+      throw new Error('構成割り振りに必要な情報が不足しています');
+    }
+
+    this.addMessage('coordinator', 'planner', 'リサーチ結果を各セクションに割り振ってください');
+
+    const allocations: ContentAllocation[] = [];
+
+    // 各セクションに対してコンテンツを割り振る
+    for (const section of this.state.currentPlan.sections) {
+      // セクションに関連するリサーチ結果を収集
+      const sectionResults = this.state.researchResults.filter(
+        r => r.sectionId === section.id
+      );
+
+      // 初期リサーチ結果も考慮
+      const relevantInitialResults = this.state.initialResearchResults?.filter(
+        r => this.isRelevantToSection(r.summary, section)
+      ) || [];
+
+      // コンテンツの構造化
+      const allocation: ContentAllocation = {
+        sectionId: section.id,
+        allocatedContent: {
+          mainPoints: this.extractMainPoints(sectionResults, relevantInitialResults),
+          supportingDetails: this.extractSupportingDetails(sectionResults),
+          connections: this.identifyConnections(section, this.state.currentPlan.sections),
+        },
+      };
+
+      allocations.push(allocation);
+    }
+
+    this.state.contentAllocation = allocations;
+    
+    this.addMessage('planner', 'coordinator', 
+      `コンテンツ割り振り完了: ${allocations.length}セクション`
+    );
+  }
+
+  private isRelevantToSection(content: string, section: PlanSection): boolean {
+    // セクションのキーワードとの関連性をチェック
+    const keywords = [
+      ...section.title.toLowerCase().split(' '),
+      ...section.expectedContent.map(e => e.toLowerCase()),
+    ];
+    
+    const contentLower = content.toLowerCase();
+    return keywords.some(keyword => contentLower.includes(keyword));
+  }
+
+  private extractMainPoints(
+    sectionResults: ResearchResult[], 
+    initialResults: ResearchResult[]
+  ): string[] {
+    // 主要ポイントを抽出
+    const points: string[] = [];
+    
+    // 高信頼度の結果から主要ポイントを抽出
+    const highConfidenceResults = sectionResults
+      .filter(r => r.confidence > 0.7)
+      .sort((a, b) => b.confidence - a.confidence);
+    
+    highConfidenceResults.forEach(result => {
+      const summaryPoints = result.summary.split('\n').filter(p => p.trim());
+      points.push(...summaryPoints.slice(0, 3)); // 各結果から最大3ポイント
+    });
+
+    // 初期リサーチからも関連ポイントを追加
+    initialResults.forEach(result => {
+      const relevantPoints = result.summary.split('\n')
+        .filter(p => p.trim() && !points.includes(p));
+      points.push(...relevantPoints.slice(0, 2));
+    });
+
+    return points.slice(0, 5); // 最大5つの主要ポイント
+  }
+
+  private extractSupportingDetails(sectionResults: ResearchResult[]): string[] {
+    // サポート詳細を抽出
+    const details: string[] = [];
+    
+    sectionResults.forEach(result => {
+      result.sources.forEach(source => {
+        if (source.relevanceScore > 0.6) {
+          details.push(source.snippet);
+        }
+      });
+    });
+
+    return details.slice(0, 8); // 最大8つの詳細
+  }
+
+  private identifyConnections(
+    currentSection: PlanSection, 
+    allSections: PlanSection[]
+  ): string[] {
+    // 他のセクションとの関連性を特定
+    const connections: string[] = [];
+    
+    allSections.forEach(section => {
+      if (section.id !== currentSection.id) {
+        // 共通のキーワードやテーマを探す
+        const commonQueries = currentSection.researchQueries.filter(
+          q => section.researchQueries.some(sq => 
+            sq.toLowerCase().includes(q.toLowerCase()) || 
+            q.toLowerCase().includes(sq.toLowerCase())
+          )
+        );
+        
+        if (commonQueries.length > 0) {
+          connections.push(`${section.title}との関連: ${commonQueries.join(', ')}`);
+        }
+      }
+    });
+
+    return connections;
   }
 
   private async writingPhase(): Promise<void> {
@@ -191,11 +351,17 @@ export class CoordinatorAgent {
         r => r.sectionId === section.id
       );
 
-      // ドラフト作成
-      const draft = await this.writerAgent.createSlideDraft(
+      // コンテンツ割り振りを取得
+      const allocation = this.state.contentAllocation?.find(
+        a => a.sectionId === section.id
+      );
+
+      // ドラフト作成（割り振られたコンテンツを考慮）
+      const draft = await this.writerAgent.createSlideDraftWithAllocation(
         section.id,
         section.title,
-        sectionResearch
+        sectionResearch,
+        allocation
       );
 
       this.state.drafts.push(draft);
