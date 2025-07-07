@@ -12,18 +12,33 @@ import {
   PlanSection
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { 
+  PROFESSIONAL_THEME, 
+  UnifiedTheme, 
+  SLIDE_LAYOUTS, 
+  CONTENT_ELEMENTS, 
+  STATIC_STYLES, 
+  applyTheme 
+} from './designTemplates';
+import { HTMLDesignerAgent } from './htmlDesignerAgent';
+import { HTMLCreatorAgent } from './htmlCreatorAgent';
 
 export class CoordinatorAgent {
   private plannerAgent: PlannerAgent;
   private researchAgent: ResearchAgent;
   private writerAgent: WriterAgent;
+  private htmlDesigner: HTMLDesignerAgent;
+  private htmlCreator: HTMLCreatorAgent;
   private state: AgentState;
   private maxIterations: number = 20;
+  private presentationTheme: UnifiedTheme = PROFESSIONAL_THEME;
 
   constructor() {
     this.plannerAgent = new PlannerAgent();
     this.researchAgent = new ResearchAgent();
     this.writerAgent = new WriterAgent();
+    this.htmlDesigner = new HTMLDesignerAgent();
+    this.htmlCreator = new HTMLCreatorAgent();
     this.state = this.initializeState();
   }
 
@@ -156,29 +171,35 @@ export class CoordinatorAgent {
 
     const plan = this.state.currentPlan;
     
-    // 並列実行数を制限（3つずつ）
+    // 並列実行数を増やしてパフォーマンスを向上（3つずつ）
     const batchSize = 3;
     const allResults: ResearchResult[] = [];
     
-    for (let i = 0; i < plan.sections.length; i += batchSize) {
-      const batch = plan.sections.slice(i, i + batchSize);
-      
-      const batchPromises = batch.map(async (section) => {
-        this.addMessage('coordinator', 'researcher', 
-          `「${section.title}」のリサーチを開始してください`
-        );
+    // 全セクションを一度に処理（バッチ処理を簡素化）
+    const sectionPromises = plan.sections.map(async (section) => {
+      this.addMessage('coordinator', 'researcher', 
+        `「${section.title}」のリサーチを開始してください`
+      );
 
+      try {
         const sectionResults = await this.researchAgent.conductResearch(
           section,
           fileContent
         );
-
         return sectionResults;
-      });
+      } catch (error) {
+        console.error(`[CoordinatorAgent] Research failed for section ${section.title}:`, error);
+        return [];
+      }
+    });
 
-      // バッチごとに結果を待機
-      const batchResults = await Promise.all(batchPromises);
-      allResults.push(...batchResults.flat());
+    // Promise.allSettledを使用してエラーハンドリングを改善
+    const settledResults = await Promise.allSettled(sectionPromises);
+    
+    for (const result of settledResults) {
+      if (result.status === 'fulfilled') {
+        allResults.push(...result.value);
+      }
     }
     
     // 結果を保存
@@ -341,16 +362,26 @@ export class CoordinatorAgent {
 
     const slides: SlideData[] = [];
 
-    // タイトルスライドの作成
+    // タイトルスライドの作成（テンプレートベース）
     const titleSlide: SlideData = {
       id: uuidv4(),
       title: this.state.currentPlan.objective,
       content: `${new Date().toLocaleDateString('ja-JP')}`,
       type: 'title',
     };
+    
+    // タイトルスライドのHTML生成
+    try {
+      const titleDesign = await this.htmlDesigner.designSlideLayout(titleSlide, this.presentationTheme);
+      const titleHtml = await this.generateTitleSlideHTML(titleSlide, titleDesign);
+      titleSlide.htmlContent = titleHtml;
+    } catch (error) {
+      console.error('[CoordinatorAgent] Failed to generate title slide HTML:', error);
+    }
+    
     slides.push(titleSlide);
 
-    // 目次スライドの作成
+    // 目次スライドの作成（専用デザイン）
     const tocSlide: SlideData = {
       id: uuidv4(),
       title: '目次',
@@ -359,17 +390,23 @@ export class CoordinatorAgent {
         .join('\n'),
       type: 'content',
     };
+    
+    // 目次スライドのHTML生成
+    try {
+      const tocDesign = await this.htmlDesigner.designSlideLayout(tocSlide, this.presentationTheme);
+      const tocHtml = await this.generateTOCSlideHTML(tocSlide, tocDesign);
+      tocSlide.htmlContent = tocHtml;
+    } catch (error) {
+      console.error('[CoordinatorAgent] Failed to generate TOC slide HTML:', error);
+    }
+    
     slides.push(tocSlide);
 
-    // 各セクションのスライド作成をバッチで実行（メモリ効率のため）
-    // Arrow関数を使用してthisのコンテキストを保持
+    // 各セクションのスライド作成を並列実行（パフォーマンス向上）
     const contentSlides: SlideData[] = [];
-    const batchSize = 2; // 2セクションずつ処理
     
-    for (let i = 0; i < this.state.currentPlan.sections.length; i += batchSize) {
-      const batch = this.state.currentPlan.sections.slice(i, i + batchSize);
-      
-      const batchPromises = batch.map(async (section) => {
+    // 全セクションを並列処理
+    const sectionPromises = this.state.currentPlan.sections.map(async (section) => {
       this.addMessage('coordinator', 'writer', 
         `「${section.title}」のスライドを作成してください（推定${section.estimatedSlides || 1}枚）`
       );
@@ -418,21 +455,28 @@ export class CoordinatorAgent {
 
         const slide = await this.writerAgent.convertToSlide(
           draft,
-          'content'
+          'content',
+          this.presentationTheme
         );
         
-        if (!slide.content || slide.content.trim() === '') {
-          slide.content = draft.content;
+        // slide.contentが文字列であることを確認
+        if (!slide.content || (typeof slide.content === 'string' && slide.content.trim() === '')) {
+          slide.content = typeof draft.content === 'string' ? draft.content : String(draft.content || '');
         }
 
         return [slide];
       }
-      });
+    });
 
-      // バッチごとにスライド作成を待機
-      const batchSlidesArrays = await Promise.all(batchPromises);
-      const batchSlides = batchSlidesArrays.flat();
-      contentSlides.push(...batchSlides);
+    // Promise.allSettledで全セクションの処理を待機
+    const settledSlides = await Promise.allSettled(sectionPromises);
+    
+    for (const result of settledSlides) {
+      if (result.status === 'fulfilled') {
+        contentSlides.push(...result.value);
+      } else {
+        console.error('[CoordinatorAgent] Slide creation failed:', result.reason);
+      }
     }
     
     // 作成したスライドを追加
@@ -474,6 +518,9 @@ export class CoordinatorAgent {
       throw new Error('スライドが存在しません');
     }
 
+    // スライドタイトルの一貫性チェックと修正
+    this.ensureTitleConsistency();
+
     // トランジション文の生成
     const transitions = await this.writerAgent.generateTransitions(
       this.state.finalSlides.slides
@@ -497,6 +544,50 @@ export class CoordinatorAgent {
     this.addMessage('coordinator', 'coordinator', 
       `スライド生成完了: ${totalTime}ms`
     );
+  }
+
+  private ensureTitleConsistency(): void {
+    if (!this.state.finalSlides || !this.state.currentPlan) return;
+    
+    const slides = this.state.finalSlides.slides;
+    const sections = this.state.currentPlan.sections;
+    
+    // セクションごとにスライドをグループ化
+    const sectionGroups = new Map<string, SlideData[]>();
+    
+    slides.forEach((slide, index) => {
+      // タイトル、目次、結論スライドはスキップ
+      if (index === 0 || index === 1 || index === slides.length - 1) return;
+      
+      // セクションタイトルでグループ化
+      const baseTitle = slide.title.split(/[:：\-－]/)[0].trim();
+      if (!sectionGroups.has(baseTitle)) {
+        sectionGroups.set(baseTitle, []);
+      }
+      sectionGroups.get(baseTitle)!.push(slide);
+    });
+    
+    // 各グループ内でタイトルの一貫性を確保
+    sectionGroups.forEach((groupSlides, sectionTitle) => {
+      if (groupSlides.length > 1) {
+        groupSlides.forEach((slide, idx) => {
+          // すでに適切なサブタイトルがある場合はそのまま
+          if (slide.title.includes(':') || slide.title.includes('：')) return;
+          
+          // 内容から適切なサブタイトルを生成
+          const contentLines = (typeof slide.content === 'string' ? slide.content : String(slide.content || ''))
+            .split('\n')
+            .filter(line => line.trim());
+          
+          if (contentLines.length > 0) {
+            const focus = this.extractMainFocus(contentLines);
+            if (focus && focus !== sectionTitle) {
+              slide.title = `${sectionTitle}: ${focus}`;
+            }
+          }
+        });
+      }
+    });
   }
 
   getState(): AgentState {
@@ -611,9 +702,19 @@ export class CoordinatorAgent {
     // 各スライドセットに対してスライドを作成
     for (let i = 0; i < slideSets.length; i++) {
       const slideSet = slideSets[i];
-      const slideTitle = slideSets.length > 1 
-        ? `${section.title} (${i + 1}/${slideSets.length})`
-        : section.title;
+      
+      // スライドタイトルを内容に基づいて生成
+      let slideTitle = section.title;
+      if (slideSets.length > 1) {
+        // メインポイントから適切なサブタイトルを生成
+        const mainFocus = this.extractMainFocus(slideSet.points);
+        if (mainFocus && mainFocus !== section.title) {
+          slideTitle = `${section.title}: ${mainFocus}`;
+        } else {
+          // フォーカスが特定できない場合は、シンプルな番号付け
+          slideTitle = i === 0 ? `${section.title} - 概要` : `${section.title} - 詳細${i}`;
+        }
+      }
       
       // 各サブセクション用の仮想allocation
       const subAllocation: ContentAllocation = {
@@ -636,17 +737,142 @@ export class CoordinatorAgent {
       
       const slide = await this.writerAgent.convertToSlide(
         draft,
-        'content'
+        'content',
+        this.presentationTheme
       );
       
-      if (!slide.content || slide.content.trim() === '') {
-        slide.content = draft.content;
+      // slide.contentが文字列であることを確認
+      if (!slide.content || (typeof slide.content === 'string' && slide.content.trim() === '')) {
+        slide.content = typeof draft.content === 'string' ? draft.content : String(draft.content || '');
       }
       
       slides.push(slide);
     }
     
     return slides;
+  }
+
+  private extractMainFocus(points: string[]): string {
+    if (points.length === 0) return '';
+    
+    // 最初のポイントから主要なトピックを抽出
+    const firstPoint = points[0];
+    
+    // 一般的なキーワードパターンを使用してメインフォーカスを特定
+    const patterns = [
+      /^(.+?)(?:の|に関する|について)/,  // 「〜の」「〜に関する」「〜について」
+      /^【(.+?)】/,                      // 【タイトル】形式
+      /^■\s*(.+)/,                      // ■ タイトル形式
+      /^・\s*(.+?)(?:：|:)/,            // ・タイトル：形式
+      /^(\S+?)(?:とは|の概要|の詳細)/,   // 「〜とは」「〜の概要」形式
+    ];
+    
+    for (const pattern of patterns) {
+      const match = firstPoint.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    
+    // パターンにマッチしない場合は、最初の20文字程度を使用
+    const shortTitle = firstPoint.replace(/^[・•\-]\s*/, '').substring(0, 20);
+    return shortTitle.includes('。') ? shortTitle.split('。')[0] : shortTitle;
+  }
+
+  private async generateTitleSlideHTML(slide: SlideData, design: any): Promise<string> {
+    try {
+      const template = SLIDE_LAYOUTS.title;
+      const variables: Record<string, string> = {
+        title: slide.title,
+        content: slide.content || '',
+        date: new Date().toLocaleDateString('ja-JP'),
+      };
+
+      let html = applyTheme(template, this.presentationTheme, variables);
+      
+      // Font Awesomeと静的スタイルを追加
+      html = `
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <style>
+          ${STATIC_STYLES}
+        </style>
+        ${html}
+      `;
+
+      return html;
+    } catch (error) {
+      console.error('[CoordinatorAgent] Failed to generate title HTML:', error);
+      return this.htmlCreator.createSlideHTML(slide, design);
+    }
+  }
+
+  private async generateTOCSlideHTML(slide: SlideData, design: any): Promise<string> {
+    try {
+      // 目次アイテムをカード形式で生成
+      const sections = this.state.currentPlan?.sections || [];
+      const tocItems = sections.map((section, index) => `
+        <div class="toc-item" style="
+          background: ${this.presentationTheme.colors.surface};
+          padding: ${this.presentationTheme.spacing.md};
+          border-radius: ${this.presentationTheme.effects.borderRadius};
+          box-shadow: ${this.presentationTheme.effects.shadow.md};
+          border-left: 0.3125vw solid ${this.presentationTheme.colors.accent};
+        ">
+          <div style="
+            display: flex;
+            align-items: center;
+            gap: ${this.presentationTheme.spacing.sm};
+          ">
+            <div style="
+              width: 2.5vw;
+              height: 2.5vw;
+              background: ${this.presentationTheme.colors.gradients.accent};
+              color: white;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: ${this.presentationTheme.typography.weights.bold};
+              font-size: ${this.presentationTheme.typography.sizes.body};
+            ">${index + 1}</div>
+            <h3 style="
+              font-size: ${this.presentationTheme.typography.sizes.subtitle};
+              font-weight: ${this.presentationTheme.typography.weights.medium};
+              color: ${this.presentationTheme.colors.primary};
+              margin: 0;
+            ">${section.title}</h3>
+          </div>
+          <p style="
+            font-size: ${this.presentationTheme.typography.sizes.caption};
+            color: ${this.presentationTheme.colors.text.secondary};
+            margin: ${this.presentationTheme.spacing.xs} 0 0 3.125vw;
+            line-height: 1.6;
+          ">${section.expectedContent.join(' • ')}</p>
+        </div>
+      `).join('');
+
+      const template = SLIDE_LAYOUTS.toc;
+      const variables: Record<string, string> = {
+        title: slide.title,
+        tocItems,
+      };
+
+      let html = applyTheme(template, this.presentationTheme, variables);
+      
+      // Font Awesomeと静的スタイルを追加
+      html = `
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <style>
+          ${STATIC_STYLES}
+        </style>
+        ${html}
+      `;
+
+      return html;
+    } catch (error) {
+      console.error('[CoordinatorAgent] Failed to generate TOC HTML:', error);
+      return this.htmlCreator.createSlideHTML(slide, design);
+    }
   }
 
   getDetailedProgress(): {

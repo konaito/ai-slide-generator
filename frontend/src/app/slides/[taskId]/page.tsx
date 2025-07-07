@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { SlideData } from '@/types/api';
+import { HTMLSlideViewer } from '@/components/HTMLSlideViewer';
 
 export default function SlideView() {
   const params = useParams();
@@ -104,7 +105,43 @@ export default function SlideView() {
   }
 
   const slide = slides[currentSlide];
+  
+  // HTMLコンテンツがある場合は新しいビューアを使用
+  const hasHtmlContent = slides.some(s => s.htmlContent);
+  
+  if (hasHtmlContent) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <div className="h-screen flex flex-col">
+          {/* ヘッダー */}
+          <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-800">
+              スライドプレゼンテーション
+            </h1>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/"
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+              >
+                ホームに戻る
+              </Link>
+            </div>
+          </div>
 
+          {/* スライドビューア */}
+          <div className="flex-1">
+            <HTMLSlideViewer 
+              slides={slides} 
+              currentIndex={currentSlide}
+              onSlideChange={setCurrentSlide}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 既存のレンダリング（HTMLコンテンツがない場合）
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* スライドコンテナ */}

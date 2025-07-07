@@ -10,10 +10,22 @@ import {
   DEFAULT_AGENT_CONFIG 
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { HTMLDesignerAgent } from './htmlDesignerAgent';
+import { HTMLCreatorAgent } from './htmlCreatorAgent';
+import { 
+  PROFESSIONAL_THEME, 
+  UnifiedTheme, 
+  SLIDE_LAYOUTS, 
+  CONTENT_ELEMENTS, 
+  STATIC_STYLES,
+  applyTheme 
+} from './designTemplates';
 
 export class WriterAgent {
   private llm: ChatOpenAI;
   private config = DEFAULT_AGENT_CONFIG.writer;
+  private htmlDesigner: HTMLDesignerAgent;
+  private htmlCreator: HTMLCreatorAgent;
 
   constructor() {
     this.llm = new ChatOpenAI({
@@ -21,6 +33,8 @@ export class WriterAgent {
       temperature: this.config.temperature,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
+    this.htmlDesigner = new HTMLDesignerAgent();
+    this.htmlCreator = new HTMLCreatorAgent();
   }
 
   async createSlideDraft(
@@ -29,26 +43,31 @@ export class WriterAgent {
     researchResults: ResearchResult[]
   ): Promise<SlideDraft> {
     const draftPrompt = PromptTemplate.fromTemplate(`
-あなたは優秀なプレゼンテーション作成の専門家です。
-以下のリサーチ結果を基に、「{sectionTitle}」に関するスライドを作成してください。
+「{sectionTitle}」のスライドを作成してください。
 
 リサーチ結果:
 {researchSummaries}
 
-スライド作成のガイドライン：
-1. タイトルは簡潔で印象的に
-2. 内容は箇条書きまたは短い段落で構成
-3. 重要なデータや統計を含める
-4. 視覚的要素の提案も含める
-5. スピーカーノートで補足説明を追加
-
-JSON形式で返答してください：
+以下のJSON形式で簡潔に返答してください：
 {{
-  "title": "スライドタイトル",
-  "content": "スライドの本文内容",
-  "visualSuggestions": ["視覚要素の提案"],
-  "speakerNotes": "発表者用のメモ",
-  "keyPoints": ["重要ポイント1", "重要ポイント2"]
+  "title": "{sectionTitle}に関する明確なタイトル",
+  "content": "3-5個の主要ポイント（箇条書き形式）",
+  "mainPoints": [
+    {{
+      "icon": "fas fa-chart-line",
+      "title": "ポイント",
+      "description": "説明（数値含む）",
+      "data": {{"value": "85%"}}
+    }}
+  ],
+  "visualElements": {{
+    "primaryChart": {{
+      "type": "bar",
+      "title": "チャート名",
+      "data": {{"labels": ["A", "B"], "values": [50, 80]}}
+    }}
+  }},
+  "speakerNotes": "発表時の要点"
 }}
     `);
 
@@ -77,14 +96,44 @@ JSON形式で返答してください：
       
       const draftData = JSON.parse(jsonText);
 
+      // 新しいJSON構造を処理して高密度なコンテンツを生成
+      let formattedContent = draftData.content || '';
+      
+      // メインポイントがある場合は構造化されたコンテンツを生成
+      if (draftData.mainPoints && draftData.mainPoints.length > 0) {
+        formattedContent = draftData.mainPoints
+          .map((point: any) => `【${point.title}】\n${point.description}${point.data ? `\n・数値: ${point.data.value} ${point.data.trend || ''}` : ''}`)
+          .join('\n\n');
+      }
+      
+      // キーデータがある場合は追加
+      if (draftData.keyData && draftData.keyData.length > 0) {
+        formattedContent += '\n\n■ 重要指標\n' + 
+          draftData.keyData
+            .map((data: any) => `• ${data.label}: ${data.value}${data.unit} ${data.context || ''}`)
+            .join('\n');
+      }
+      
+      // ケーススタディがある場合は追加
+      if (draftData.caseStudy) {
+        const cs = draftData.caseStudy;
+        formattedContent += `\n\n■ 事例: ${cs.company}\n課題: ${cs.challenge}\n解決策: ${cs.solution}\n成果: ${cs.result}`;
+      }
+
       const draft: SlideDraft = {
         id: uuidv4(),
         sectionId,
         title: draftData.title,
-        content: draftData.content,
+        content: formattedContent,
         version: 1,
         feedback: [],
         status: 'draft',
+        metadata: {
+          visualElements: draftData.visualElements,
+          actionItems: draftData.actionItems,
+          mainPoints: draftData.mainPoints,
+          keyData: draftData.keyData
+        }
       };
 
       console.log(`[WriterAgent] Created draft for section: ${sectionTitle}`);
@@ -161,7 +210,7 @@ JSON形式で返答してください：
     }
   }
 
-  async convertToSlide(draft: SlideDraft, slideType: SlideData['type']): Promise<SlideData> {
+  async convertToSlide(draft: SlideDraft, slideType: SlideData['type'], presentationTheme?: any): Promise<SlideData> {
     const convertPrompt = PromptTemplate.fromTemplate(`
 以下のドラフトを最終的なスライド形式に変換してください。
 
@@ -224,6 +273,35 @@ JSON形式で返答：
           : undefined,
       };
 
+      // HTML生成フェーズ - 統一テーマを使用
+      try {
+        // プレゼンテーション全体のテーマを取得（デフォルト: PROFESSIONAL_THEME）
+        const theme = presentationTheme || PROFESSIONAL_THEME;
+        
+        // 1. HTMLデザイナーがレイアウトを設計（統一テーマを適用）
+        const design = await this.htmlDesigner.designSlideLayout(slide, theme);
+        
+        // 2. テンプレートベースのHTML生成を試みる
+        let htmlContent: string;
+        
+        // スライドタイプに応じたテンプレート選択
+        if (slide.type === 'title' || slide.type === 'conclusion') {
+          // 特別なスライドタイプには専用テンプレートを使用
+          htmlContent = await this.generateTemplateBasedHTML(slide, design, theme);
+        } else {
+          // 通常のコンテンツスライドはAIに生成させる
+          htmlContent = await this.htmlCreator.createSlideHTML(slide, design);
+        }
+        
+        // 3. HTMLコンテンツをスライドに追加
+        slide.htmlContent = htmlContent;
+        
+        console.log(`[WriterAgent] Generated HTML for slide: ${slide.title}`);
+      } catch (htmlError) {
+        console.error('[WriterAgent] Failed to generate HTML:', htmlError);
+        // HTMLなしでも続行
+      }
+
       return slide;
 
     } catch (error) {
@@ -245,8 +323,8 @@ JSON形式で返答：
     allocation?: ContentAllocation
   ): Promise<SlideDraft> {
     const draftPrompt = PromptTemplate.fromTemplate(`
-あなたは優秀なプレゼンテーション作成の専門家です。
-以下のリサーチ結果とコンテンツ割り振りを基に、「{sectionTitle}」に関するスライドを作成してください。
+あなたはTED Talksスタイルの優秀なプレゼンテーション作成専門家です。
+以下のリサーチ結果とコンテンツ割り振りを基に、「{sectionTitle}」に関する情報密度の高いスライドを作成してください。
 
 リサーチ結果:
 {researchSummaries}
@@ -261,20 +339,23 @@ JSON形式で返答：
 他セクションとの関連:
 {connections}
 
-スライド作成のガイドライン：
-1. 主要ポイントを中心に構成
-2. サポート詳細で説得力を持たせる
-3. 他セクションとの関連性を意識
-4. 論理的な流れを保つ
-5. 視覚的要素の提案も含める
+スライド作成の絶対要件：
+1. **タイトル設計**: 
+   - セクションタイトル「{sectionTitle}」を基準に
+   - 主要ポイントの内容を反映した具体的なサブタイトル
+   - 「概要」「詳細」などの曖昧な表現は避ける
+2. **情報密度**: 3-5個の具体的な論点、データ、事例
+3. **視覚的要素**: チャート、表、アイコンの具体的な提案
+4. **論理的構成**: 導入→展開→結論の明確な流れ
+5. **アクション指向**: 聴衆が実践できる具体的なポイント
 
 JSON形式で返答してください：
 {{
-  "title": "スライドタイトル",
-  "content": "スライドの本文内容（構造化された箇条書き）",
-  "visualSuggestions": ["視覚要素の提案"],
-  "speakerNotes": "発表者用のメモ（他セクションとの繋がりを含む）",
-  "keyPoints": ["重要ポイント1", "重要ポイント2"]
+  "title": "セクションに沿った具体的で明確なタイトル（曖昧な番号付けは避ける）",
+  "content": "情報豊富で構造化されたコンテンツ（箇条書き、データ、事例を含む）",
+  "visualSuggestions": ["具体的な視覚要素の提案"],
+  "speakerNotes": "発表者用の詳細メモ",
+  "keyPoints": ["核心的ポイント1", "核心的ポイント2", "核心的ポイント3"]
 }}
     `);
 
@@ -326,6 +407,61 @@ JSON形式で返答してください：
       console.error('[WriterAgent] Failed to create slide draft with allocation:', error);
       // フォールバック: 通常のドラフト作成
       return this.createSlideDraft(sectionId, sectionTitle, researchResults);
+    }
+  }
+
+  private async generateTemplateBasedHTML(
+    slide: SlideData, 
+    design: SlideDesign, 
+    theme: UnifiedTheme
+  ): Promise<string> {
+    try {
+      // スライドタイプに応じたテンプレートを選択
+      let template = '';
+      const variables: Record<string, string> = {
+        title: slide.title,
+        content: slide.content || '',
+        date: new Date().toLocaleDateString('ja-JP'),
+        slideNumber: '',
+        footerText: '',
+      };
+
+      if (slide.type === 'title') {
+        template = SLIDE_LAYOUTS.title;
+      } else if (slide.type === 'conclusion') {
+        template = SLIDE_LAYOUTS.conclusion;
+        // 結論スライドのポイントを生成
+        const contentStr = typeof slide.content === 'string' ? slide.content : String(slide.content || '');
+        const points = contentStr.split('\n')
+          .filter(line => line.trim())
+          .map(line => CONTENT_ELEMENTS.keyPoint(
+            'fas fa-check-circle',
+            line.replace(/^[•-]\s*/, ''),
+            '',
+            theme
+          ))
+          .join('');
+        variables.conclusionPoints = points;
+        variables.callToAction = 'ご清聴ありがとうございました';
+      }
+
+      // テーマを適用してHTMLを生成
+      let html = applyTheme(template, theme, variables);
+      
+      // Font Awesomeと静的スタイルを追加
+      html = `
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <style>
+          ${STATIC_STYLES}
+        </style>
+        ${html}
+      `;
+
+      return html;
+    } catch (error) {
+      console.error('[WriterAgent] Failed to generate template-based HTML:', error);
+      // フォールバック：HTMLCreatorを使用
+      return this.htmlCreator.createSlideHTML(slide, design);
     }
   }
 

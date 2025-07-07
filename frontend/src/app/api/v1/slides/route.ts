@@ -86,10 +86,16 @@ async function processSlideGeneration(taskId: string, prompt: string, file?: Fil
       taskStorage.updateTask(taskId, {
         agentProgress: progress
       });
-    }, 1000); // 1秒ごとに更新
+    }, 5000); // 5秒ごとに更新（負荷軽減）
 
     try {
-      const slideDocument = await slideGenerator.generateSlides(prompt, fileContent);
+      // タイムアウト付きでスライド生成を実行
+      const slideGenerationPromise = slideGenerator.generateSlides(prompt, fileContent);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('スライド生成がタイムアウトしました（10分）')), 600000); // 10分
+      });
+      
+      const slideDocument = await Promise.race([slideGenerationPromise, timeoutPromise]);
       
       // インターバルをクリア
       clearInterval(progressInterval);
@@ -100,8 +106,8 @@ async function processSlideGeneration(taskId: string, prompt: string, file?: Fil
         agentProgress: finalProgress
       });
       
-      // デバッグ用：生成されたスライドの内容をログ出力
-      console.log('Generated slides:', JSON.stringify(slideDocument, null, 2));
+      // デバッグ用：生成されたスライドの内容をログ出力（最初の100文字のみ）
+      console.log('Generated slides preview:', JSON.stringify(slideDocument).substring(0, 100) + '...');
 
       // PDF生成
       const pdfGenerator = new PDFGenerator();
