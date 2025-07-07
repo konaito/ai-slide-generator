@@ -21,8 +21,8 @@ export class HTMLCreatorAgent {
 
   async createSlideHTML(slide: SlideData, design: SlideDesign): Promise<string> {
     const htmlPrompt = PromptTemplate.fromTemplate(`
-あなたはプロフェッショナルなHTML/CSS専門家です。
-情報密度が高く、洗練された1280x720ピクセルのHTMLスライドを作成してください。
+あなたはCanva、Figma、Adobe Creative Cloudレベルのデザイナーです。
+世界トップクラスのプレゼンテーションスライドを作成してください。
 
 スライド情報:
 タイプ: {slideType}
@@ -33,37 +33,50 @@ export class HTMLCreatorAgent {
 デザイン仕様:
 {designSpec}
 
-HTML生成の絶対要件:
-1. **完全なHTMLドキュメント**:
-   - <!DOCTYPE html>から始まる独立したHTML
-   - <head>にメタ情報、外部CSS、フォントを含む
-   - Tailwind CSS CDN: https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css
-   - Noto Sans JP: https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap
-   - Font Awesome: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css
+【Canvaレベルのデザイン要件】
 
-2. **情報密度の最大化**:
-   - 各スライドに3-5個の主要ポイント
-   - 具体的な数値、統計、事例を含む
-   - 視覚的要素（アイコン、図表、グリッド）を50%以上
-   - 空白を最小限に、情報を最大限に
+1. **モダンなビジュアルデザイン**:
+   - 多層グラデーション背景（例: linear-gradient(135deg, #667eea 0%, #764ba2 100%)）
+   - グラスモーフィズム効果（backdrop-filter: blur(10px)、半透明要素）
+   - ニューモーフィズム（柔らかい影とハイライト）
+   - 幾何学的なシェイプとパターン（SVG使用）
 
-3. **静的で洗練されたデザイン**:
-   - アニメーションなし（静的表示）
-   - グリッドレイアウトで情報を整理
-   - カード、ボックス、テーブルで構造化
-   - 色彩とサイズで視覚的階層を表現
+2. **プロフェッショナルなレイアウト**:
+   - 黄金比（1.618）を使った要素配置
+   - 非対称でダイナミックなグリッド
+   - オーバーラップする要素で奥行き表現
+   - ネガティブスペースの戦略的活用
 
-4. **構造化されたレイアウト**:
+3. **高度なタイポグラフィ**:
+   - フォントの組み合わせ（見出し: Montserrat/Poppins、本文: Noto Sans JP）
+   - 文字の大小対比（最大96px、最小14px）
+   - 文字間隔と行間の最適化
+   - テキストにグラデーションやシャドウ効果
+
+4. **リッチなビジュアル要素**:
+   - カスタムSVGアイコン（Font Awesome + 独自デザイン）
+   - 装飾的な図形（円、波形、幾何学模様）
+   - データビジュアライゼーション（チャート、グラフ、インフォグラフィック）
+   - 画像マスキング効果（clip-path使用）
+
+5. **カラーとエフェクト**:
+   - 5-7色の調和したカラーパレット
+   - グラデーション、グロー、ブラー効果
+   - box-shadow: 0 20px 40px rgba(0,0,0,0.1)
+   - border-radius: 20px以上の丸みのあるデザイン
+
+6. **実装詳細**:
+   - <!DOCTYPE html>から始まる完全なHTML
+   - 必須CDN:
+     - Tailwind CSS: https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css
+     - Google Fonts: Montserrat, Poppins, Noto Sans JP
+     - Font Awesome: https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css
+   - カスタムCSS（<style>タグ内）で高度なスタイリング
    - 1280px x 720pxの固定サイズ
-   - .slide-containerクラスで全体を包含
-   - グリッド/フレックスボックスで要素配置
-   - パディング: 40-60px
 
-5. **視覚的要素**:
-   - Font Awesomeアイコンを積極的に使用
-   - 背景グラデーション、ボーダー、シャドウ
-   - アクセントカラーで重要情報を強調
-   - データは必ず視覚化（表、リスト、カード）
+【デザインの参考】
+Canva、Pitch、Beautiful.AI、Slidebean、Decktopusのようなモダンで洗練されたデザインを目指してください。
+単なる情報の羅列ではなく、視覚的にインパクトのある、記憶に残るスライドを作成してください。
 
 完全なHTMLドキュメント（<!DOCTYPE html>から</html>まで）を返してください。
     `);
@@ -156,118 +169,228 @@ ${design.elements.map(el => `
 
   private createFallbackHTML(slide: SlideData, design: SlideDesign): string {
     const isTitle = slide.type === 'title';
-    // slide.contentが文字列であることを確認
     const contentStr = typeof slide.content === 'string' ? slide.content : String(slide.content || '');
-    const isBulletList = contentStr.includes('•') || contentStr.includes('-');
+    const isBulletList = contentStr.includes('•') || contentStr.includes('-') || contentStr.includes('【');
+
+    // Canvaスタイルのグラデーション背景
+    const gradientBg = isTitle 
+      ? `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`
+      : `linear-gradient(135deg, #f093fb 0%, #f5576c 100%)`;
 
     let contentHTML = '';
     if (isBulletList) {
-      const items = contentStr.split('\n')
-        .filter(line => line.trim())
-        .map(line => line.replace(/^[•-]\s*/, ''));
+      const sections = contentStr.split(/【[^】]+】/).filter(s => s.trim());
+      const sectionTitles = contentStr.match(/【[^】]+】/g) || [];
       
       contentHTML = `
-        <ul style="
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          font-size: ${design.visualHierarchy.bodySize};
-          line-height: 1.8;
+        <div style="
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 30px;
+          width: 100%;
         ">
-          ${items.map((item, index) => `
-            <li style="
-              margin-bottom: 1.5625vw;
-              padding-left: 3.125vw;
-              position: relative;
-            ">
-              <span style="
-                position: absolute;
-                left: 0;
-                top: 0.3125vw;
-                width: 1.5625vw;
-                height: 1.5625vw;
-                background-color: ${design.theme.accentColor};
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 0.9375vw;
-              ">✓</span>
-              ${item}
-            </li>
-          `).join('')}
-        </ul>
+          ${sectionTitles.map((title, index) => {
+            const items = sections[index]?.split('\n').filter(line => line.trim()) || [];
+            return `
+              <div style="
+                background: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(10px);
+                border-radius: 20px;
+                padding: 30px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                position: relative;
+                overflow: hidden;
+              ">
+                <div style="
+                  position: absolute;
+                  top: -50px;
+                  right: -50px;
+                  width: 150px;
+                  height: 150px;
+                  background: ${design.theme.accentColor};
+                  opacity: 0.1;
+                  border-radius: 50%;
+                "></div>
+                <h3 style="
+                  font-size: 24px;
+                  font-weight: 700;
+                  color: ${design.theme.primaryColor};
+                  margin-bottom: 20px;
+                  font-family: 'Poppins', sans-serif;
+                ">${title.replace(/【|】/g, '')}</h3>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                  ${items.map(item => `
+                    <li style="
+                      margin-bottom: 15px;
+                      padding-left: 30px;
+                      position: relative;
+                      font-size: 16px;
+                      line-height: 1.6;
+                    ">
+                      <i class="fas fa-check-circle" style="
+                        position: absolute;
+                        left: 0;
+                        top: 3px;
+                        color: ${design.theme.accentColor};
+                        font-size: 16px;
+                      "></i>
+                      ${item.replace(/^[•\-\d.]\s*/, '')}
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+            `;
+          }).join('')}
+        </div>
       `;
     } else {
-      contentHTML = `<p style="
-        font-size: ${design.visualHierarchy.bodySize};
-        line-height: 1.6;
-        margin: 0;
-        white-space: pre-wrap;
-      ">${contentStr}</p>`;
+      contentHTML = `
+        <div style="
+          background: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(10px);
+          border-radius: 30px;
+          padding: 60px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+          max-width: 90%;
+          margin: 0 auto;
+        ">
+          <p style="
+            font-size: ${design.visualHierarchy.bodySize};
+            line-height: 1.8;
+            margin: 0;
+            white-space: pre-wrap;
+            color: ${design.theme.textColor};
+          ">${contentStr}</p>
+        </div>
+      `;
     }
 
     return `
-      <div class="slide" style="
-        width: 1280px;
-        height: 720px;
-        background: linear-gradient(135deg, ${design.theme.backgroundColor} 0%, ${this.lightenColor(design.theme.backgroundColor, 10)} 100%);
-        color: ${design.theme.textColor};
-        font-family: ${design.theme.fontFamily};
-        position: absolute;
-        top: 0;
-        left: 0;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        ${isTitle ? 'justify-content: center; align-items: center;' : 'padding: 6.25vw;'}
-        box-sizing: border-box;
-      ">
-        ${!isTitle ? `
-          <div style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 0.625vw;
-            background: linear-gradient(90deg, ${design.theme.primaryColor} 0%, ${design.theme.secondaryColor} 100%);
-          "></div>
-        ` : ''}
-        
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Poppins:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; }
+    .slide-container {
+      width: 1280px;
+      height: 720px;
+      position: relative;
+      background: ${gradientBg};
+      display: flex;
+      flex-direction: column;
+      ${isTitle ? 'justify-content: center; align-items: center;' : 'padding: 80px;'}
+      overflow: hidden;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+    
+    /* 幾何学的な装飾 */
+    .geometric-shape {
+      position: absolute;
+      opacity: 0.1;
+    }
+    
+    .shape-1 {
+      top: -100px;
+      left: -100px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    
+    .shape-2 {
+      bottom: -150px;
+      right: -150px;
+      width: 400px;
+      height: 400px;
+      background: conic-gradient(from 180deg at 50% 50%, #e0c3fc 0deg, #8ec5fc 360deg);
+      opacity: 0.2;
+      transform: rotate(45deg);
+    }
+    
+    .title-decoration {
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(90deg, ${design.theme.primaryColor} 0%, ${design.theme.accentColor} 100%);
+      border-radius: 3px;
+      transform: scaleX(0.3);
+      transform-origin: left center;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div class="geometric-shape shape-1"></div>
+    <div class="geometric-shape shape-2"></div>
+    
+    ${isTitle ? `
+      <div style="text-align: center; z-index: 10;">
         <h1 style="
-          font-size: ${isTitle ? '5.625vw' : design.visualHierarchy.titleSize};
-          font-weight: bold;
-          margin: 0 0 ${isTitle ? '3.125vw' : '4.6875vw'} 0;
-          color: ${design.theme.primaryColor};
-          ${isTitle ? 'text-align: center;' : ''}
-          text-shadow: 0.15625vw 0.15625vw 0.3125vw rgba(0,0,0,0.1);
-        ">${slide.title}</h1>
-        
-        ${!isTitle ? `
-          <div style="
-            width: 9.375vw;
-            height: 0.46875vw;
-            background-color: ${design.theme.accentColor};
-            margin-bottom: 2.34375vw;
-          "></div>
-        ` : ''}
-        
-        ${contentHTML}
-        
-        ${!isTitle ? `
-          <div style="
-            position: absolute;
-            bottom: 3.125vw;
-            right: 6.25vw;
-            width: 4.6875vw;
-            height: 4.6875vw;
-            background-color: ${design.theme.accentColor};
-            opacity: 0.1;
-            border-radius: 50%;
-          "></div>
+          font-size: 72px;
+          font-weight: 800;
+          margin: 0 0 40px 0;
+          color: white;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+          font-family: 'Montserrat', sans-serif;
+          letter-spacing: -2px;
+          position: relative;
+        ">
+          ${slide.title}
+          <div class="title-decoration"></div>
+        </h1>
+        ${contentStr ? `
+          <p style="
+            font-size: 24px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 400;
+            letter-spacing: 1px;
+          ">${contentStr}</p>
         ` : ''}
       </div>
+    ` : `
+      <div style="z-index: 10; width: 100%;">
+        <h1 style="
+          font-size: 48px;
+          font-weight: 700;
+          margin: 0 0 40px 0;
+          color: white;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+          font-family: 'Poppins', sans-serif;
+          position: relative;
+          display: inline-block;
+        ">
+          ${slide.title}
+          <div class="title-decoration"></div>
+        </h1>
+        
+        ${contentHTML}
+      </div>
+    `}
+    
+    <!-- スライド番号 -->
+    ${!isTitle ? `
+      <div style="
+        position: absolute;
+        bottom: 30px;
+        right: 40px;
+        font-size: 14px;
+        color: rgba(255,255,255,0.6);
+        font-family: 'Poppins', sans-serif;
+      ">
+        ${new Date().toLocaleDateString('ja-JP')}
+      </div>
+    ` : ''}
+  </div>
+</body>
+</html>
     `;
   }
 
