@@ -33,6 +33,13 @@ export class HTMLCreatorAgent {
 デザイン仕様:
 {designSpec}
 
+【重要】テキストの羅列は厳禁！以下の視覚的要素を必ず含めてください：
+- 数値やデータ → 必ずチャート化（SVG）
+- プロセスや手順 → フローチャートやタイムライン
+- 比較や対比 → テーブル、マトリックス、並列カード
+- 概念説明 → イラストやアイコンを使った図解
+- 重要ポイント → インフォグラフィック形式
+
 【Canvaレベルのデザイン要件】
 
 1. **モダンなビジュアルデザイン**:
@@ -56,7 +63,12 @@ export class HTMLCreatorAgent {
 4. **リッチなビジュアル要素**:
    - カスタムSVGアイコン（Font Awesome + 独自デザイン）
    - 装飾的な図形（円、波形、幾何学模様）
-   - データビジュアライゼーション（チャート、グラフ、インフォグラフィック）
+   - データビジュアライゼーション：
+     * 数値データがあれば必ずSVGチャートを生成（円グラフ、棒グラフ、折れ線グラフ）
+     * プロセスは矢印とボックスのフローチャート
+     * 比較はテーブルやマトリックス
+     * パーセンテージは視覚的なプログレスバーやゲージ
+   - インフォグラフィック（アイコン+数値+説明の組み合わせ）
    - 画像マスキング効果（clip-path使用）
 
 5. **カラーとエフェクト**:
@@ -78,7 +90,22 @@ export class HTMLCreatorAgent {
 Canva、Pitch、Beautiful.AI、Slidebean、Decktopusのようなモダンで洗練されたデザインを目指してください。
 単なる情報の羅列ではなく、視覚的にインパクトのある、記憶に残るスライドを作成してください。
 
+【SVGチャートの例】
+円グラフ:
+<svg viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="80" fill="none" stroke="#e0e0e0" stroke-width="40"/>
+  <circle cx="100" cy="100" r="80" fill="none" stroke="#667eea" stroke-width="40" 
+          stroke-dasharray="125.6 376.8" transform="rotate(-90 100 100)"/>
+</svg>
+
+棒グラフ:
+<svg viewBox="0 0 400 300">
+  <rect x="50" y="150" width="60" height="100" fill="#667eea" rx="5"/>
+  <rect x="150" y="100" width="60" height="150" fill="#764ba2" rx="5"/>
+</svg>
+
 完全なHTMLドキュメント（<!DOCTYPE html>から</html>まで）を返してください。
+必ず数値データはSVGチャートで表現し、テキストだけの羅列は避けてください。
     `);
 
     const chain = new LLMChain({

@@ -482,9 +482,38 @@ ${conclusionContent.nextSteps.map((step, i) => `${i + 1}. ${step}`).join('\n')}
 
 JSON形式で返答してください：
 {{
-  "title": "セクションに沿った具体的で明確なタイトル（曖昧な番号付けは避ける）",
-  "content": "情報豊富で構造化されたコンテンツ（箇条書き、データ、事例を含む）",
-  "visualSuggestions": ["具体的な視覚要素の提案"],
+  "title": "セクションに沿った具体的で明確なタイトル",
+  "content": "情報豊富で構造化されたコンテンツ",
+  "visualData": {{
+    "charts": [
+      {{
+        "type": "pie|bar|line|donut|area",
+        "data": [["ラベル", 値], ...],
+        "title": "チャートタイトル",
+        "colors": ["#hex1", "#hex2", ...]
+      }}
+    ],
+    "infographics": [
+      {{
+        "type": "process|comparison|timeline|hierarchy",
+        "items": [
+          {{"label": "ステップ1", "value": "説明", "icon": "fa-search"}},
+          {{"label": "ステップ2", "value": "説明", "icon": "fa-chart-line"}}
+        ]
+      }}
+    ],
+    "illustrations": [
+      {{
+        "type": "concept|metaphor|diagram",
+        "description": "イラストの説明",
+        "elements": ["中心の円", "放射状の線", "アイコン"]
+      }}
+    ],
+    "keyMetrics": [
+      {{"label": "重要指標", "value": "85%", "trend": "up", "icon": "fa-chart-line"}}
+    ]
+  }},
+  "layout": "cards|dashboard|infographic|storytelling",
   "speakerNotes": "発表者用の詳細メモ",
   "keyPoints": ["核心的ポイント1", "核心的ポイント2", "核心的ポイント3"]
 }}
