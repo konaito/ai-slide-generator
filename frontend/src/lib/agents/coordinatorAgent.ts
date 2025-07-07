@@ -537,7 +537,7 @@ export class CoordinatorAgent {
     
     // まとめスライドのHTML生成
     try {
-      const conclusionDesign = await this.htmlDesigner.designSlide(conclusionSlide, this.presentationTheme);
+      const conclusionDesign = await this.htmlDesigner.designSlideLayout(conclusionSlide, this.presentationTheme);
       conclusionSlide.htmlContent = await this.htmlCreator.createSlideHTML(conclusionSlide, conclusionDesign);
     } catch (error) {
       console.error('[CoordinatorAgent] Failed to generate conclusion slide HTML:', error);
