@@ -316,6 +316,137 @@ JSON形式で返答：
     }
   }
 
+  async createConclusionSlide(
+    sectionId: string,
+    title: string,
+    conclusionContent: {
+      keyPoints: string[];
+      insights: string[];
+      nextSteps: string[];
+    },
+    researchResults: ResearchResult[]
+  ): Promise<SlideDraft> {
+    const conclusionPrompt = PromptTemplate.fromTemplate(`
+あなたはMcKinsey、BCGレベルのプレゼンテーション専門家です。
+全体のまとめスライドを作成してください。
+
+重要ポイント:
+{keyPoints}
+
+主要な洞察:
+{insights}
+
+次のステップ:
+{nextSteps}
+
+研究データ:
+{researchSummaries}
+
+まとめスライドの要件：
+1. **構造**: 
+   - 「主要な発見」セクション（3-5個の最重要ポイント）
+   - 「戦略的示唆」セクション（2-3個の洞察）
+   - 「今後の取り組み」セクション（3個の具体的アクション）
+2. **情報密度**: 各ポイントは簡潔だが具体的に
+3. **視覚的階層**: アイコン、色分け、グルーピングで構造化
+4. **結論の強さ**: 明確な行動指針とビジョンを提示
+
+JSON形式で返してください:
+{{
+  "mainPoints": ["ポイント1", "ポイント2", ...],
+  "insights": ["洞察1", "洞察2", ...],
+  "actionItems": ["アクション1", "アクション2", ...],
+  "visualElements": {{
+    "icons": ["アイコン提案"],
+    "layout": "レイアウトタイプ",
+    "emphasis": ["強調要素"]
+  }}
+}}
+    `);
+
+    const chain = new LLMChain({
+      llm: this.llm,
+      prompt: conclusionPrompt,
+    });
+
+    try {
+      const result = await chain.call({
+        keyPoints: conclusionContent.keyPoints.join('\n'),
+        insights: conclusionContent.insights.join('\n'),
+        nextSteps: conclusionContent.nextSteps.join('\n'),
+        researchSummaries: researchResults.map(r => r.summary).join('\n\n'),
+      });
+
+      // JSON形式でパース
+      let parsedContent;
+      try {
+        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedContent = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('JSON not found');
+        }
+      } catch (parseError) {
+        console.error('[WriterAgent] Failed to parse conclusion JSON:', parseError);
+        parsedContent = {
+          mainPoints: conclusionContent.keyPoints,
+          insights: conclusionContent.insights,
+          actionItems: conclusionContent.nextSteps,
+          visualElements: { icons: [], layout: 'grid', emphasis: [] }
+        };
+      }
+
+      // コンテンツの構造化
+      const structuredContent = `
+【主要な発見】
+${parsedContent.mainPoints.map((point: string, i: number) => `${i + 1}. ${point}`).join('\n')}
+
+【戦略的示唆】
+${parsedContent.insights.map((insight: string, i: number) => `• ${insight}`).join('\n')}
+
+【今後の取り組み】
+${parsedContent.actionItems.map((action: string, i: number) => `${i + 1}. ${action}`).join('\n')}
+      `.trim();
+
+      const draft: SlideDraft = {
+        id: uuidv4(),
+        sectionId,
+        title,
+        content: structuredContent,
+        version: 1,
+        feedback: [],
+        status: 'draft',
+      };
+
+      console.log(`[WriterAgent] Created conclusion slide`);
+      return draft;
+
+    } catch (error) {
+      console.error('[WriterAgent] Failed to create conclusion slide:', error);
+      // フォールバック
+      const fallbackContent = `
+【主要な発見】
+${conclusionContent.keyPoints.map((point, i) => `${i + 1}. ${point}`).join('\n')}
+
+【戦略的示唆】
+${conclusionContent.insights.map((insight) => `• ${insight}`).join('\n')}
+
+【今後の取り組み】
+${conclusionContent.nextSteps.map((step, i) => `${i + 1}. ${step}`).join('\n')}
+      `.trim();
+
+      return {
+        id: uuidv4(),
+        sectionId,
+        title,
+        content: fallbackContent,
+        version: 1,
+        feedback: [],
+        status: 'draft',
+      };
+    }
+  }
+
   async createSlideDraftWithAllocation(
     sectionId: string,
     sectionTitle: string,

@@ -66,6 +66,7 @@ export function HTMLSlideViewer({ slides, currentIndex = 0, onSlideChange }: HTM
         >
           {currentSlide?.htmlContent ? (
             <iframe
+              content="width=1280, initial-scale=1"
               srcDoc={`<!DOCTYPE html>
 <html>
 <head>

@@ -483,14 +483,66 @@ export class CoordinatorAgent {
     slides.push(...contentSlides);
 
     // まとめスライドの作成
-    const conclusionSlide: SlideData = {
-      id: uuidv4(),
-      title: 'まとめ',
-      content: this.state.currentPlan.sections
-        .map(s => `• ${s.title}`)
-        .join('\n'),
-      type: 'conclusion',
+    this.addMessage('coordinator', 'writer', '全体のまとめスライドを作成してください');
+    
+    // 全セクションの要点をまとめる
+    const keyPoints: string[] = [];
+    const insights: string[] = [];
+    
+    // 各セクションの主要ポイントを抽出
+    for (const section of this.state.currentPlan.sections) {
+      const sectionResearch = this.state.researchResults.filter(r => r.sectionId === section.id);
+      const allocation = this.state.contentAllocation?.find(a => a.sectionId === section.id);
+      
+      if (allocation) {
+        // 各セクションから1-2個の最重要ポイントを抽出
+        const mainPoint = allocation.allocatedContent.mainPoints[0];
+        if (mainPoint) {
+          keyPoints.push(`${section.title}: ${mainPoint}`);
+        }
+        
+        // 接続や洞察を収集
+        if (allocation.allocatedContent.connections.length > 0) {
+          insights.push(...allocation.allocatedContent.connections.slice(0, 1));
+        }
+      }
+    }
+    
+    // まとめコンテンツの構造化
+    const conclusionContent = {
+      keyPoints: keyPoints.slice(0, 5), // 最大5つの重要ポイント
+      insights: insights.slice(0, 3), // 最大3つの洞察
+      nextSteps: [
+        '提示された分析に基づく意思決定',
+        '詳細な実行計画の策定',
+        '継続的なモニタリングと改善'
+      ]
     };
+    
+    // WriterAgentを使用してまとめスライドを作成
+    const conclusionDraft = await this.writerAgent.createConclusionSlide(
+      'conclusion',
+      'まとめ',
+      conclusionContent,
+      this.state.researchResults
+    );
+    
+    this.state.drafts.push(conclusionDraft);
+    
+    const conclusionSlide = await this.writerAgent.convertToSlide(
+      conclusionDraft,
+      'conclusion',
+      this.presentationTheme
+    );
+    
+    // まとめスライドのHTML生成
+    try {
+      const conclusionDesign = await this.htmlDesigner.designSlide(conclusionSlide, this.presentationTheme);
+      conclusionSlide.htmlContent = await this.htmlCreator.createSlideHTML(conclusionSlide, conclusionDesign);
+    } catch (error) {
+      console.error('[CoordinatorAgent] Failed to generate conclusion slide HTML:', error);
+    }
+    
     slides.push(conclusionSlide);
 
     // 一時的にスライドを保存
