@@ -34,10 +34,17 @@ export default function Home() {
         formData.append('file', file);
       }
 
+      // AbortControllerでタイムアウトを設定（5分に延長）
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分のタイムアウト
+
       const response = await fetch('/api/v1/slides', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       const result = await response.json();
       
@@ -50,7 +57,11 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('エラーが発生しました');
+      if (error instanceof Error && error.name === 'AbortError') {
+        alert('リクエストがタイムアウトしました。内容を簡潔にして再度お試しください。');
+      } else {
+        alert('エラーが発生しました: ' + (error instanceof Error ? error.message : '不明なエラー'));
+      }
       setIsGenerating(false);
     }
   };
