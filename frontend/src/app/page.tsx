@@ -55,12 +55,12 @@ export default function Home() {
         alert('エラーが発生しました: ' + result.error);
         setIsGenerating(false);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         alert('リクエストがタイムアウトしました。内容を簡潔にして再度お試しください。');
       } else {
-        alert('エラーが発生しました: ' + (error.message || '不明なエラー'));
+        alert('エラーが発生しました: ' + (error instanceof Error ? error.message : '不明なエラー'));
       }
       setIsGenerating(false);
     }

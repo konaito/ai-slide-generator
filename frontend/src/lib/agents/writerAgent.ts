@@ -10,7 +10,7 @@ import {
   DEFAULT_AGENT_CONFIG 
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
-import { HTMLDesignerAgent } from './htmlDesignerAgent';
+import { HTMLDesignerAgent, SlideDesign } from './htmlDesignerAgent';
 import { HTMLCreatorAgent } from './htmlCreatorAgent';
 import { 
   PROFESSIONAL_THEME, 
@@ -102,7 +102,7 @@ export class WriterAgent {
       // メインポイントがある場合は構造化されたコンテンツを生成
       if (draftData.mainPoints && draftData.mainPoints.length > 0) {
         formattedContent = draftData.mainPoints
-          .map((point: any) => `【${point.title}】\n${point.description}${point.data ? `\n・数値: ${point.data.value} ${point.data.trend || ''}` : ''}`)
+          .map((point: { title: string; description: string; data?: { value: string; trend?: string } }) => `【${point.title}】\n${point.description}${point.data ? `\n・数値: ${point.data.value} ${point.data.trend || ''}` : ''}`)
           .join('\n\n');
       }
       
@@ -110,7 +110,7 @@ export class WriterAgent {
       if (draftData.keyData && draftData.keyData.length > 0) {
         formattedContent += '\n\n■ 重要指標\n' + 
           draftData.keyData
-            .map((data: any) => `• ${data.label}: ${data.value}${data.unit} ${data.context || ''}`)
+            .map((data: { label: string; value: string; unit?: string; context?: string }) => `• ${data.label}: ${data.value}${data.unit || ''} ${data.context || ''}`)
             .join('\n');
       }
       
@@ -127,13 +127,7 @@ export class WriterAgent {
         content: formattedContent,
         version: 1,
         feedback: [],
-        status: 'draft',
-        metadata: {
-          visualElements: draftData.visualElements,
-          actionItems: draftData.actionItems,
-          mainPoints: draftData.mainPoints,
-          keyData: draftData.keyData
-        }
+        status: 'draft'
       };
 
       console.log(`[WriterAgent] Created draft for section: ${sectionTitle}`);
@@ -210,7 +204,7 @@ export class WriterAgent {
     }
   }
 
-  async convertToSlide(draft: SlideDraft, slideType: SlideData['type'], presentationTheme?: any): Promise<SlideData> {
+  async convertToSlide(draft: SlideDraft, slideType: SlideData['type'], presentationTheme?: Partial<UnifiedTheme>): Promise<SlideData> {
     const convertPrompt = PromptTemplate.fromTemplate(`
 以下のドラフトを最終的なスライド形式に変換してください。
 
@@ -279,7 +273,7 @@ JSON形式で返答：
         const theme = presentationTheme || PROFESSIONAL_THEME;
         
         // 1. HTMLデザイナーがレイアウトを設計（統一テーマを適用）
-        const design = await this.htmlDesigner.designSlideLayout(slide, theme);
+        const design = await this.htmlDesigner.designSlideLayout(slide);
         
         // 2. テンプレートベースのHTML生成を試みる
         let htmlContent: string;
@@ -287,7 +281,7 @@ JSON形式で返答：
         // スライドタイプに応じたテンプレート選択
         if (slide.type === 'title' || slide.type === 'conclusion') {
           // 特別なスライドタイプには専用テンプレートを使用
-          htmlContent = await this.generateTemplateBasedHTML(slide, design, theme);
+          htmlContent = await this.generateTemplateBasedHTML(slide, design, theme as UnifiedTheme);
         } else {
           // 通常のコンテンツスライドはAIに生成させる
           htmlContent = await this.htmlCreator.createSlideHTML(slide, design);
@@ -402,7 +396,7 @@ JSON形式で返してください:
 ${parsedContent.mainPoints.map((point: string, i: number) => `${i + 1}. ${point}`).join('\n')}
 
 【戦略的示唆】
-${parsedContent.insights.map((insight: string, i: number) => `• ${insight}`).join('\n')}
+${parsedContent.insights.map((insight: string) => `• ${insight}`).join('\n')}
 
 【今後の取り組み】
 ${parsedContent.actionItems.map((action: string, i: number) => `${i + 1}. ${action}`).join('\n')}

@@ -130,7 +130,7 @@ export class ResearchAgent {
     query: string,
     sources: Source[],
     expectedContent: string[]
-  ): Promise<{ summary: string; confidence: number; detailedData: any }> {
+  ): Promise<{ summary: string; confidence: number; detailedData: Record<string, unknown> }> {
     const analysisPrompt = PromptTemplate.fromTemplate(`
 検索クエリ: {query}
 期待される内容: {expectedContent}
@@ -188,6 +188,7 @@ export class ResearchAgent {
       return {
         summary: '検索結果の分析に失敗しました',
         confidence: 0.0,
+        detailedData: {},
       };
     }
   }

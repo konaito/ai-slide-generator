@@ -195,7 +195,7 @@ JSON形式で返答してください：
     }
   }
 
-  private parseContentToElements(slide: SlideData, designData: any): DesignElement[] {
+  private parseContentToElements(slide: SlideData, designData: Partial<SlideDesign>): DesignElement[] {
     const elements: DesignElement[] = [];
 
     // タイトル要素
@@ -224,7 +224,7 @@ JSON形式で返答してください：
         elements.push({
           type: 'bullet-list',
           content: bulletPoints.join('\n'),
-          position: this.getPositionForType(slide.type, 'bullets'),
+          position: this.getPositionForType(slide.type, 'bullet-list'),
           style: {
             fontSize: designData.visualHierarchy?.bodySize || '1.875vw',
             textAlign: 'left',
@@ -257,12 +257,12 @@ JSON形式で返答してください：
       content: {
         title: { x: '5%', y: '8%', width: '90%', height: 'auto' },
         body: { x: '5%', y: '25%', width: '90%', height: '65%' },
-        bullets: { x: '10%', y: '30%', width: '80%', height: '60%' },
+        'bullet-list': { x: '10%', y: '30%', width: '80%', height: '60%' },
       },
       conclusion: {
         title: { x: '10%', y: '20%', width: '80%', height: 'auto' },
         body: { x: '10%', y: '40%', width: '80%', height: '50%' },
-        bullets: { x: '15%', y: '45%', width: '70%', height: '45%' },
+        'bullet-list': { x: '15%', y: '45%', width: '70%', height: '45%' },
       },
     };
 

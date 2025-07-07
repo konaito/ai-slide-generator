@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
         }) + '\n'));
         
         if (taskStorage) {
-          const taskId = (controller as any).taskId;
+          const taskId = (controller as unknown as Record<string, unknown>).taskId as string;
           if (taskId) {
             taskStorage.updateTask(taskId, {
               status: 'failed',

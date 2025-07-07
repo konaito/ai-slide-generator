@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { SlideData } from '@/types/api';
+import { SlideData } from '@/lib/agents/types';
 import { HTMLSlideViewer } from '@/components/HTMLSlideViewer';
 
 export default function SlideView() {

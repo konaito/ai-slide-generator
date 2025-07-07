@@ -103,9 +103,9 @@ export default function StreamPage() {
           }
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error:', error);
-      setError(error.message || '不明なエラーが発生しました');
+      setError(error instanceof Error ? error.message : '不明なエラーが発生しました');
       setIsGenerating(false);
     }
   };

@@ -16,11 +16,10 @@ import {
   PROFESSIONAL_THEME, 
   UnifiedTheme, 
   SLIDE_LAYOUTS, 
-  CONTENT_ELEMENTS, 
   STATIC_STYLES, 
   applyTheme 
 } from './designTemplates';
-import { HTMLDesignerAgent } from './htmlDesignerAgent';
+import { HTMLDesignerAgent, SlideDesign } from './htmlDesignerAgent';
 import { HTMLCreatorAgent } from './htmlCreatorAgent';
 
 export class CoordinatorAgent {
@@ -172,7 +171,7 @@ export class CoordinatorAgent {
     const plan = this.state.currentPlan;
     
     // 並列実行数を増やしてパフォーマンスを向上（3つずつ）
-    const batchSize = 3;
+    // const batchSize = 3; // 未使用
     const allResults: ResearchResult[] = [];
     
     // 全セクションを一度に処理（バッチ処理を簡素化）
@@ -372,7 +371,7 @@ export class CoordinatorAgent {
     
     // タイトルスライドのHTML生成
     try {
-      const titleDesign = await this.htmlDesigner.designSlideLayout(titleSlide, this.presentationTheme);
+      const titleDesign = await this.htmlDesigner.designSlideLayout(titleSlide);
       const titleHtml = await this.generateTitleSlideHTML(titleSlide, titleDesign);
       titleSlide.htmlContent = titleHtml;
     } catch (error) {
@@ -393,7 +392,7 @@ export class CoordinatorAgent {
     
     // 目次スライドのHTML生成
     try {
-      const tocDesign = await this.htmlDesigner.designSlideLayout(tocSlide, this.presentationTheme);
+      const tocDesign = await this.htmlDesigner.designSlideLayout(tocSlide);
       const tocHtml = await this.generateTOCSlideHTML(tocSlide, tocDesign);
       tocSlide.htmlContent = tocHtml;
     } catch (error) {
@@ -491,7 +490,7 @@ export class CoordinatorAgent {
     
     // 各セクションの主要ポイントを抽出
     for (const section of this.state.currentPlan.sections) {
-      const sectionResearch = this.state.researchResults.filter(r => r.sectionId === section.id);
+      // const sectionResearch = this.state.researchResults.filter(r => r.sectionId === section.id);
       const allocation = this.state.contentAllocation?.find(a => a.sectionId === section.id);
       
       if (allocation) {
@@ -537,7 +536,7 @@ export class CoordinatorAgent {
     
     // まとめスライドのHTML生成
     try {
-      const conclusionDesign = await this.htmlDesigner.designSlideLayout(conclusionSlide, this.presentationTheme);
+      const conclusionDesign = await this.htmlDesigner.designSlideLayout(conclusionSlide);
       conclusionSlide.htmlContent = await this.htmlCreator.createSlideHTML(conclusionSlide, conclusionDesign);
     } catch (error) {
       console.error('[CoordinatorAgent] Failed to generate conclusion slide HTML:', error);
@@ -602,7 +601,7 @@ export class CoordinatorAgent {
     if (!this.state.finalSlides || !this.state.currentPlan) return;
     
     const slides = this.state.finalSlides.slides;
-    const sections = this.state.currentPlan.sections;
+    // const sections = this.state.currentPlan.sections;
     
     // セクションごとにスライドをグループ化
     const sectionGroups = new Map<string, SlideData[]>();
@@ -622,7 +621,7 @@ export class CoordinatorAgent {
     // 各グループ内でタイトルの一貫性を確保
     sectionGroups.forEach((groupSlides, sectionTitle) => {
       if (groupSlides.length > 1) {
-        groupSlides.forEach((slide, idx) => {
+        groupSlides.forEach((slide) => {
           // すでに適切なサブタイトルがある場合はそのまま
           if (slide.title.includes(':') || slide.title.includes('：')) return;
           
@@ -831,7 +830,7 @@ export class CoordinatorAgent {
     return shortTitle.includes('。') ? shortTitle.split('。')[0] : shortTitle;
   }
 
-  private async generateTitleSlideHTML(slide: SlideData, design: any): Promise<string> {
+  private async generateTitleSlideHTML(slide: SlideData, design: SlideDesign): Promise<string> {
     try {
       const template = SLIDE_LAYOUTS.title;
       const variables: Record<string, string> = {
@@ -858,7 +857,7 @@ export class CoordinatorAgent {
     }
   }
 
-  private async generateTOCSlideHTML(slide: SlideData, design: any): Promise<string> {
+  private async generateTOCSlideHTML(slide: SlideData, design: SlideDesign): Promise<string> {
     try {
       // 目次アイテムをカード形式で生成
       const sections = this.state.currentPlan?.sections || [];

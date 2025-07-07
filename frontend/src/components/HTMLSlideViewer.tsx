@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { SlideData } from '@/types/api';
+import { SlideData } from '@/lib/agents/types';
 
 interface HTMLSlideViewerProps {
   slides: SlideData[];

@@ -289,7 +289,7 @@ export const CONTENT_ELEMENTS = {
       font-size: ${theme.typography.sizes.body};
       line-height: 1.8;
     ">
-      ${items.map((item, index) => `
+      ${items.map((item) => `
         <li style="
           margin-bottom: ${theme.spacing.md};
           padding-left: ${theme.spacing.lg};
@@ -365,7 +365,7 @@ export const CONTENT_ELEMENTS = {
       gap: ${theme.spacing.md};
       margin: ${theme.spacing.lg} 0;
     ">
-      ${items.map((item, index) => `
+      ${items.map((item) => `
         <div class="grid-item" style="
           background: ${theme.colors.surface};
           border-radius: ${theme.effects.borderRadius};
@@ -443,7 +443,7 @@ export const CONTENT_ELEMENTS = {
     </div>
   `,
 
-  visualChart: (type: 'pie' | 'bar' | 'line', data: any, theme: UnifiedTheme) => `
+  visualChart: (type: 'pie' | 'bar' | 'line', data: unknown, theme: UnifiedTheme) => `
     <div class="chart-container" style="
       background: ${theme.colors.surface};
       border-radius: ${theme.effects.borderRadius};
@@ -457,7 +457,7 @@ export const CONTENT_ELEMENTS = {
         color: ${theme.colors.text.secondary};
         margin-bottom: ${theme.spacing.md};
       ">
-        <i class="fas fa-chart-${type}"></i> ${data.title}
+        <i class="fas fa-chart-${type}"></i> ${(data as { title?: string }).title || 'Chart'}
       </div>
       <!-- Chart visualization would go here -->
       <div style="
@@ -471,7 +471,7 @@ export const CONTENT_ELEMENTS = {
         <span style="
           font-size: ${theme.typography.sizes.body};
           color: ${theme.colors.text.secondary};
-        ">Chart: ${data.description}</span>
+        ">Chart: ${(data as { description?: string }).description || 'Data visualization'}</span>
       </div>
     </div>
   `,
