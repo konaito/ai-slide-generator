@@ -182,4 +182,53 @@ flowchart TD
 
 ---
 
+## セットアップ手順
+
+### 環境変数の設定
+
+1. **OpenRouterアカウントの作成**
+   - [OpenRouter](https://openrouter.ai/)でアカウントを作成
+   - APIキーを取得
+
+2. **環境変数ファイルの作成**
+   ```bash
+   cd frontend
+   cp .env.local.example .env.local
+   ```
+
+3. **.env.localの編集**
+   ```env
+   # OpenRouter API Key
+   OPENROUTER_API_KEY=your-openrouter-api-key-here
+   
+   # Next.js環境変数
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   
+   # 開発環境設定
+   NODE_ENV=development
+   ```
+
+### 開発環境の起動
+
+```bash
+cd frontend
+bun install
+bun run dev
+```
+
+アプリケーションが http://localhost:3000 で起動します。
+
+### 使用可能なモデル
+
+OpenRouter経由で以下のモデルが利用可能です：
+- GPT-4o (openai/gpt-4o)
+- GPT-4 Turbo (openai/gpt-4-turbo)
+- Claude 3 Opus (anthropic/claude-3-opus)
+- Claude 3 Sonnet (anthropic/claude-3-sonnet)
+- その他多数のLLMモデル
+
+モデルの変更は `frontend/src/lib/agents/types.ts` の `DEFAULT_AGENT_CONFIG` で設定できます。
+
+---
+
 *以上、企画書案です。フィードバック・追記箇所があればお知らせください。*

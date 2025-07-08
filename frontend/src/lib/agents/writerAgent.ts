@@ -31,7 +31,10 @@ export class WriterAgent {
     this.llm = new ChatOpenAI({
       modelName: this.config.model,
       temperature: this.config.temperature,
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: process.env.OPENROUTER_API_KEY,
+      configuration: {
+        baseURL: 'https://openrouter.ai/api/v1',
+      },
     });
     this.htmlDesigner = new HTMLDesignerAgent();
     this.htmlCreator = new HTMLCreatorAgent();
