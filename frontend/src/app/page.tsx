@@ -36,7 +36,7 @@ export default function Home() {
 
       // AbortControllerでタイムアウトを設定（5分に延長）
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分のタイムアウト
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10分のタイムアウト
 
       const response = await fetch('/api/v1/slides', {
         method: 'POST',

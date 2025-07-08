@@ -132,27 +132,10 @@ export class ResearchAgent {
     expectedContent: string[]
   ): Promise<{ summary: string; confidence: number; detailedData: Record<string, unknown> }> {
     const analysisPrompt = PromptTemplate.fromTemplate(`
-検索クエリ: {query}
-期待される内容: {expectedContent}
-検索結果: {sources}
-
-以下のJSON形式で簡潔に返答してください：
+{query}について以下のJSON形式で簡潔に:
 {{
-  "summary": "3-5文の要約（数値データを含む）",
-  "keyFindings": [
-    {{
-      "point": "重要な発見",
-      "data": "具体的な数値",
-      "visualType": "bar_chart/pie_chart"
-    }}
-  ],
-  "caseStudies": [
-    {{
-      "company": "企業名",
-      "result": "成果（数値）",
-      "keyTakeaway": "ポイント"
-    }}
-  ],
+  "summary": "2-3文の要約",
+  "keyData": ["数値1", "数値2"],
   "confidence": 0.8
 }}
     `);
