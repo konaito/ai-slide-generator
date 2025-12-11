@@ -1,0 +1,642 @@
+I'm going to create the first slide (the cover slide) for the presentation about the book 'THINK BIGGER' by Sheena Iyengar. This should be visually appealing, following TED Talk-style design principles with clean typography and a professional academic look.
+
+For this cover slide, I'll include:
+
+A clear title (『THINK BIGGER』)
+Subtitle about what the book is about
+Author information (シーナ・アイエンガー著、櫻井祐子訳)
+Publisher information (NewsPicksパブリッシング)
+A visual element that represents the concept of innovation or 'thinking bigger'
+I'll use Tailwind CSS for styling and ensure the dimensions are 1280px width with a minimum height of 720px. I'll create a clean, academic design inspired by TED Talks presentations.
+
+Let me design the HTML structure first and then apply the appropriate styling:
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THINK BIGGER 本質スライド</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            margin: 0 auto;
+            overflow: hidden;
+            position: relative;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .slide-content {
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .book-title {
+            color: #1a365d;
+            letter-spacing: 1px;
+        }
+        .accent-line {
+            width: 120px;
+            height: 6px;
+            background-color: #e53e3e;
+            margin: 24px 0;
+        }
+        .highlight {
+            color: #e53e3e;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container bg-white">
+        <div class="slide-content flex flex-col justify-between">
+            <div>
+                <h1 class="book-title text-6xl font-bold mb-6">『THINK BIGGER』とは何か</h1>
+                <div class="accent-line"></div>
+                <h2 class="text-3xl font-medium text-gray-700 mt-8 leading-relaxed">
+                    「最高の発想」を生む方法
+                </h2>
+                
+                <div class="mt-16 mb-8">
+                    <p class="text-2xl leading-relaxed text-gray-800">
+                        コロンビア大学ビジネススクール教授シーナ・アイエンガーが<br>
+                        <span class="highlight font-medium">10年の歳月をかけて開発</span>した
+                        誰でも再現可能なイノベーション手法
+                    </p>
+                    
+                    <p class="text-2xl leading-relaxed text-gray-800 mt-6">
+                        重要なのは「天才のひらめき」ではなく<br>
+                        <span class="highlight font-medium">「既存要素の新しい組み合わせ」</span>で課題解決に挑むこと
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex justify-between items-end">
+                <div class="text-xl text-gray-600">
+                    <p>シーナ・アイエンガー 著</p>
+                    <p>櫻井祐子 訳</p>
+                    <p>NewsPicksパブリッシング</p>
+                </div>
+                
+                <div class="flex items-center">
+                    <div class="mr-3">
+                        <i class="fas fa-lightbulb text-5xl text-yellow-500"></i>
+                    </div>
+                    <div class="text-right">
+                        <i class="fas fa-plus text-3xl text-blue-500"></i>
+                        <i class="fas fa-cogs text-3xl text-purple-500 ml-2"></i>
+                        <i class="fas fa-equals text-3xl text-green-500 ml-2"></i>
+                        <i class="fas fa-rocket text-3xl text-red-500 ml-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+Let me analyze what's needed for the second slide:
+
+Slide 2: イノベーションの本質 (The Essence of Innovation)
+Content requirements:
+
+Explain innovation as "a new and useful combination of old ideas/successful examples" to solve complex problems
+Emphasize that it's not about genius intuition or chance, but a methodical process
+Highlight that anyone can systematically generate ideas using this method
+Visual design requirements:
+
+TED Talks-inspired academic design aesthetic
+Use Tailwind CSS for styling
+Width: 1280px, height: 720px
+Avoid content overflow
+Make it visually appealing with proper typography and layout
+For this slide, I'll need to:
+
+Create a clean, academic-style layout
+Have a clear heading "イノベーションの本質"
+Include key points about innovation definition
+Use visual elements to represent the concept of "combination of ideas"
+Ensure the design feels like a TED Talk presentation - clean, impactful, focused
+Let me create this slide:
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THINK BIGGER 本質スライド</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            margin: 0 auto;
+            overflow: hidden;
+            position: relative;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .slide-content {
+            padding: 50px 60px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .accent-line {
+            width: 120px;
+            height: 6px;
+            background-color: #e53e3e;
+            margin: 16px 0 30px;
+        }
+        .highlight {
+            color: #e53e3e;
+            font-weight: 500;
+        }
+        .idea-combination {
+            position: relative;
+            height: 240px;
+            margin: 20px 0;
+        }
+        .idea-circle {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            position: absolute;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .circle-1 {
+            background-color: #ebf4ff;
+            color: #2c5282;
+            left: 50px;
+            top: 20px;
+        }
+        .circle-2 {
+            background-color: #fef5f5;
+            color: #c53030;
+            left: 220px;
+            top: 60px;
+        }
+        .circle-3 {
+            background-color: #f0fff4;
+            color: #276749;
+            left: 390px;
+            top: 20px;
+        }
+        .innovation-circle {
+            background-color: #fffaf0;
+            color: #975a16;
+            width: 180px;
+            height: 180px;
+            left: 620px;
+            top: 20px;
+            font-size: 22px;
+            border: 2px dashed #d69e2e;
+        }
+        .arrow {
+            position: absolute;
+            color: #4a5568;
+            font-size: 24px;
+        }
+        .arrow-1 {
+            left: 185px;
+            top: 80px;
+        }
+        .arrow-2 {
+            left: 355px;
+            top: 80px;
+        }
+        .arrow-3 {
+            left: 525px;
+            top: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container bg-white">
+        <div class="slide-content">
+            <h1 class="text-4xl font-bold text-gray-800">イノベーションの本質</h1>
+            <div class="accent-line"></div>
+            
+            <div class="idea-combination">
+                <div class="idea-circle circle-1">既存のアイデア</div>
+                <div class="arrow arrow-1">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div class="idea-circle circle-2">成功事例</div>
+                <div class="arrow arrow-2">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div class="idea-circle circle-3">新しい視点</div>
+                <div class="arrow arrow-3">
+                    <i class="fas fa-equals"></i>
+                </div>
+                <div class="idea-circle innovation-circle">イノベーション</div>
+            </div>
+            
+            <div class="mt-6 space-y-6">
+                <div class="flex items-start">
+                    <i class="fas fa-quote-left text-2xl text-gray-400 mr-4 mt-1"></i>
+                    <p class="text-2xl leading-relaxed text-gray-800">
+                        イノベーションとは、<span class="highlight">複雑な課題を解決するための、古いアイデアの新規かつ有用な組み合わせ</span>である
+                    </p>
+                </div>
+                
+                <div class="mt-8 space-y-4">
+                    <p class="text-xl leading-relaxed text-gray-700 flex items-center">
+                        <i class="fas fa-times-circle text-red-500 mr-3 text-2xl"></i>
+                        天才のひらめきや偶然の産物ではない
+                    </p>
+                    <p class="text-xl leading-relaxed text-gray-700 flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-3 text-2xl"></i>
+                        理論と実践に基づいた<span class="highlight">体系的なプロセス</span>である
+                    </p>
+                    <p class="text-xl leading-relaxed text-gray-700 flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-3 text-2xl"></i>
+                        誰でも再現可能な<span class="highlight">6つのステップ</span>で導き出せる
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-auto flex justify-end items-center">
+                <div class="text-gray-600">
+                    <span class="text-lg italic">「発明とは、無益な組み合わせを排除して、</span><br>
+                    <span class="text-lg italic">ほんのわずかしかない有用な組み合わせをつくることである」</span><br>
+                    <span class="text-sm text-right block mt-1">—アンリ・ポアンカレ（数学者・物理学者）</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+Alright, let's create slide 3 which focuses on "THINK BIGGERの6つのステップ". This slide needs to explain the 6-step process that forms the core of the THINK BIGGER methodology.
+
+The key points for each step are:
+
+課題を選ぶ：意味あるが解決可能な課題を決める (Choose a problem: Decide on a meaningful but solvable problem)
+課題を分解する：サブ課題化し具体化 (Break down the problem: Break it into sub-problems and make them concrete)
+望みを比較：自分・ターゲット・第三者の望み確認 (Compare desires: Confirm the desires of yourself, the target audience, and third parties)
+箱の中と外を探す：過去の（分野内外の）成功例を探索 (Search inside and outside the box: Explore past success examples both within and outside your field)
+選択マップ：成功例を組み合わせて新しい解決策を設計 (Selection map: Design new solutions by combining successful examples)
+第三の目テスト：他者の視点でフィードバック・洗練 (Third eye test: Refine through feedback from others' perspectives)
+I'll create a visually appealing layout that clearly presents these 6 steps while maintaining the TED Talks-inspired academic design style. I'll use icons, colors, and layout to make the information digestible and engaging.
+
+For the layout:
+
+A clear title at the top
+A visually distinctive representation of the 6 steps, perhaps in a circle or hexagon pattern
+Brief, clear explanations of each step
+Icons to represent the key action of each step
+A color scheme that ties in with the previous slides but gives each step its own identity
+Let me create the HTML for this slide now.
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THINK BIGGER 本質スライド</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            margin: 0 auto;
+            overflow: hidden;
+            position: relative;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .slide-content {
+            padding: 40px 60px;
+        }
+        .accent-line {
+            width: 120px;
+            height: 6px;
+            background-color: #e53e3e;
+            margin: 16px 0 30px;
+        }
+        .step-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        .step-card {
+            border-radius: 8px;
+            padding: 20px;
+            height: 240px;
+            display: flex;
+            flex-direction: column;
+            border-top: 5px solid;
+        }
+        .step-number {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .step-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .step-desc {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container bg-white">
+        <div class="slide-content">
+            <h1 class="text-4xl font-bold text-gray-800">THINK BIGGERの6つのステップ</h1>
+            <div class="accent-line"></div>
+            
+            <div class="step-container">
+                <!-- Step 1 -->
+                <div class="step-card shadow-md" style="border-top-color: #3182ce;">
+                    <div class="step-number text-blue-600">ステップ 1</div>
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-bullseye text-3xl text-blue-500 mr-3"></i>
+                        <h3 class="step-title">課題を選ぶ</h3>
+                    </div>
+                    <p class="step-desc text-gray-700">
+                        意味があるほど大きく、解決可能なほど小さい課題を特定する。「どうすれば〜できるか？」という形で具体化する。
+                    </p>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="step-card shadow-md" style="border-top-color: #e53e3e;">
+                    <div class="step-number text-red-600">ステップ 2</div>
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-puzzle-piece text-3xl text-red-500 mr-3"></i>
+                        <h3 class="step-title">課題を分解する</h3>
+                    </div>
+                    <p class="step-desc text-gray-700">
+                        複雑な課題をより扱いやすいサブ課題に分解する。5つ程度のサブ課題を解決すれば全体の8割が解決するようにする。
+                    </p>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="step-card shadow-md" style="border-top-color: #805ad5;">
+                    <div class="step-number text-purple-600">ステップ 3</div>
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-balance-scale text-3xl text-purple-500 mr-3"></i>
+                        <h3 class="step-title">望みを比較する</h3>
+                    </div>
+                    <p class="step-desc text-gray-700">
+                        自分・ターゲット・第三者それぞれの望みを明確にし、バランスを取る。全員にとって満足度の高い解決策を目指す。
+                    </p>
+                </div>
+                
+                <!-- Step 4 -->
+                <div class="step-card shadow-md" style="border-top-color: #38a169;">
+                    <div class="step-number text-green-600">ステップ 4</div>
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-search text-3xl text-green-500 mr-3"></i>
+                        <h3 class="step-title">箱の中と外を探す</h3>
+                    </div>
+                    <p class="step-desc text-gray-700">
+                        自分の専門分野（箱の中）と異分野（箱の外）双方から、過去の成功事例を探索して学ぶ。異分野からの視点が革新を生む。
+                    </p>
+                </div>
+                
+                <!-- Step 5 -->
+                <div class="step-card shadow-md" style="border-top-color: #dd6b20;">
+                    <div class="step-number text-orange-600">ステップ 5</div>
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-sitemap text-3xl text-orange-500 mr-3"></i>
+                        <h3 class="step-title">選択マップ</h3>
+                    </div>
+                    <p class="step-desc text-gray-700">
+                        見つけた成功事例を新しい方法で組み合わせ、独自の解決策を設計する。組み合わせの妙がイノベーションを生む。
+                    </p>
+                </div>
+                
+                <!-- Step 6 -->
+                <div class="step-card shadow-md" style="border-top-color: #2c5282;">
+                    <div class="step-number text-blue-800">ステップ 6</div>
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-eye text-3xl text-blue-800 mr-3"></i>
+                        <h3 class="step-title">第三の眼テスト</h3>
+                    </div>
+                    <p class="step-desc text-gray-700">
+                        他者からのフィードバックを受け、解決策を洗練させる。「良い点」「悪い点」「改善案」を聞き、客観的視点で磨く。
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <p class="text-lg text-gray-600 italic">「これらの6つのステップが、イノベーションを偶然の産物ではなく、再現可能なプロセスに変える」</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+これから「誰でも使える発想力拡張メソッド」というスライドを作成します。このスライドはTHINK BIGGERの最終的なまとめとなり、主要なポイントを再確認し、実用的なアドバイスを含める必要があります。
+
+以下の要点を盛り込みます：
+
+才能や偶然ではなく、「型」とプロセスで発想力は伸ばせる
+異分野から学び模倣・組み合わせる視点が重要
+ビジネスだけでなく、日常や個人課題にもすぐ応用可能
+今日から「THINK BIGGER」を日々の課題解決に！
+TED Talksスタイルの洗練されたアカデミックなデザインを目指し、視覚的に魅力的なスライドを作成します。アイコンや強調表示を使用して重要なポイントを目立たせ、実践的な応用例を示すために簡潔な図を含めます。
+
+前のスライドではコンテンツのオーバーフロー問題があったため、このスライドではコンテンツ量を適切に保ちつつ、重要なポイントを効果的に伝えることを心がけます。
+
+簡潔なHTML構造で、視覚的に魅力的なまとめスライドを作成します。
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THINK BIGGER 本質スライド</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            margin: 0 auto;
+            overflow: hidden;
+            position: relative;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .slide-content {
+            padding: 40px 60px;
+        }
+        .accent-line {
+            width: 120px;
+            height: 6px;
+            background-color: #e53e3e;
+            margin: 12px 0 24px;
+        }
+        .key-point {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .key-point-icon {
+            background-color: #ebf8ff;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        .application-box {
+            background-color: #f7fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 24px;
+            border-left: 5px solid #4299e1;
+        }
+        .call-to-action {
+            background-color: #ebf8ff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid #bee3f8;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container bg-white">
+        <div class="slide-content">
+            <h1 class="text-4xl font-bold text-gray-800">誰でも使える発想力拡張メソッド</h1>
+            <div class="accent-line"></div>
+            
+            <div class="space-y-4">
+                <!-- Key Point 1 -->
+                <div class="key-point">
+                    <div class="key-point-icon">
+                        <i class="fas fa-brain text-blue-500 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">才能や偶然ではなく「型」で伸ばせる</h3>
+                        <p class="text-gray-700">イノベーションは特別な才能ではなく、体系的な方法論によって誰でも習得可能。自分の持つ知識や経験を活かして、再現性のあるプロセスで革新的なアイデアを生み出せる。</p>
+                    </div>
+                </div>
+                
+                <!-- Key Point 2 -->
+                <div class="key-point">
+                    <div class="key-point-icon">
+                        <i class="fas fa-random text-purple-500 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">異分野からの学びと組み合わせが鍵</h3>
+                        <p class="text-gray-700">最も革新的な発想は異なる領域の知識を掛け合わせたもの。自分の専門領域（箱の中）と異分野（箱の外）両方からインスピレーションを得ることで発想の幅が広がる。</p>
+                    </div>
+                </div>
+                
+                <!-- Key Point 3 -->
+                <div class="key-point border-none">
+                    <div class="key-point-icon">
+                        <i class="fas fa-rocket text-red-500 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">ビジネスから日常まで幅広く応用可能</h3>
+                        <p class="text-gray-700">新製品開発や経営戦略だけでなく、日常の小さな課題解決や個人の目標達成にも応用できる汎用性の高い思考法。人生のあらゆる場面でTHINK BIGGERを活用できる。</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Application Box -->
+            <div class="application-box">
+                <h3 class="text-lg font-bold text-gray-800 mb-3">実践のポイント</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>課題を具体的に書き出す</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>サブ課題に分解する</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>異分野の成功例を探す</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>複数の視点から検討する</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>組み合わせの可能性を広げる</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>他者からフィードバックを得る</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Call to Action -->
+            <div class="call-to-action mt-4">
+                <p class="text-2xl font-bold text-blue-700">今日から「THINK BIGGER」を日々の課題解決に！</p>
+                <p class="text-lg text-blue-600 mt-1">大きな課題も、6つのステップで解決可能な小さな問題に分解できる</p>
+            </div>
+            
+            <!-- Footer -->
+            <div class="mt-5 flex justify-between items-center text-gray-600">
+                <div>
+                    <p class="text-sm">シーナ・アイエンガー 著 / 櫻井祐子 訳</p>
+                    <p class="text-sm">NewsPicksパブリッシング</p>
+                </div>
+                <div class="flex items-center">
+                    <i class="fas fa-lightbulb text-yellow-400 mr-2"></i>
+                    <span class="text-sm italic">「イノベーションは才能とひらめきではなく、方法と実践から生まれる」</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

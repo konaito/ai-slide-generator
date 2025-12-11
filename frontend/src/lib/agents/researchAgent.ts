@@ -8,6 +8,7 @@ import {
   DEFAULT_AGENT_CONFIG 
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { researchCache } from '@/lib/cache/researchCache';
 
 export class ResearchAgent {
   private llm: ChatOpenAI;
@@ -17,7 +18,10 @@ export class ResearchAgent {
     this.llm = new ChatOpenAI({
       modelName: this.config.model,
       temperature: this.config.temperature,
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: process.env.OPENROUTER_API_KEY,
+      configuration: {
+        baseURL: 'https://openrouter.ai/api/v1',
+      },
     });
   }
 
@@ -40,6 +44,18 @@ export class ResearchAgent {
 
     for (const query of queries) {
       try {
+        // キャッシュをチェック
+        const cachedResults = researchCache.get(query, existingContent);
+        if (cachedResults && cachedResults.length > 0) {
+          // キャッシュから結果を使用（sectionIdを更新）
+          const updatedResults = cachedResults.map(r => ({
+            ...r,
+            sectionId: section.id
+          }));
+          results.push(...updatedResults);
+          continue;
+        }
+
         // Web検索をシミュレート（実際の実装では外部APIを使用）
         const searchResults = await this.simulateWebSearch(query);
         
@@ -61,6 +77,10 @@ export class ResearchAgent {
         };
 
         results.push(result);
+        
+        // 結果をキャッシュに保存
+        researchCache.set(query, [result], existingContent);
+        
         console.log(`[ResearchAgent] Completed research for query: ${query}`);
 
       } catch (error) {
@@ -113,28 +133,13 @@ export class ResearchAgent {
     query: string,
     sources: Source[],
     expectedContent: string[]
-  ): Promise<{ summary: string; confidence: number }> {
+  ): Promise<{ summary: string; confidence: number; detailedData: Record<string, unknown> }> {
     const analysisPrompt = PromptTemplate.fromTemplate(`
-以下の検索結果を分析し、重要な情報を要約してください。
-
-検索クエリ: {query}
-期待される内容: {expectedContent}
-
-検索結果:
-{sources}
-
-以下の形式で要約を作成してください：
-1. 主要な発見事項
-2. 重要なデータや統計
-3. 専門家の見解
-4. 実践的な示唆
-
-また、情報の信頼度（0-1の数値）も評価してください。
-
-JSON形式で返答してください：
+{query}について以下のJSON形式で簡潔に:
 {{
-  "summary": "要約内容",
-  "confidence": 0.85
+  "summary": "2-3文の要約",
+  "keyData": ["数値1", "数値2"],
+  "confidence": 0.8
 }}
     `);
 
@@ -169,6 +174,7 @@ JSON形式で返答してください：
       return {
         summary: '検索結果の分析に失敗しました',
         confidence: 0.0,
+        detailedData: {},
       };
     }
   }

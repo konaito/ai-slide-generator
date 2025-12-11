@@ -29,7 +29,7 @@ export interface Message {
   metadata?: Record<string, unknown>;
 }
 
-export type AgentType = 'planner' | 'researcher' | 'writer' | 'reviewer' | 'coordinator';
+export type AgentType = 'planner' | 'researcher' | 'writer' | 'reviewer' | 'coordinator' | 'htmlDesigner' | 'htmlCreator';
 
 export interface ResearchPlan {
   id: string;
@@ -104,6 +104,7 @@ export interface SlideData {
   visualElements?: VisualElement[];
   speakerNotes?: string;
   sources?: string[];
+  htmlContent?: string; // 1920x1080のHTMLコンテンツ
 }
 
 export interface VisualElement {
@@ -175,35 +176,49 @@ export const DEFAULT_AGENT_CONFIG: Record<AgentType, AgentConfig> = {
     maxIterations: 3,
     timeoutMs: 30000,
     temperature: 0.7,
-    model: 'gpt-4o',
+    model: 'openai/gpt-4o',
     tools: ['create_outline', 'analyze_requirements'],
   },
   researcher: {
     maxIterations: 10,
     timeoutMs: 60000,
     temperature: 0.3,
-    model: 'gpt-4o',
+    model: 'openai/gpt-4o',
     tools: ['web_search', 'extract_content', 'summarize'],
   },
   writer: {
     maxIterations: 5,
     timeoutMs: 45000,
     temperature: 0.8,
-    model: 'gpt-4o',
+    model: 'openai/gpt-4o',
     tools: ['generate_content', 'format_slide', 'add_visuals'],
   },
   reviewer: {
     maxIterations: 2,
     timeoutMs: 20000,
     temperature: 0.2,
-    model: 'gpt-4o',
+    model: 'openai/gpt-4o',
     tools: ['evaluate_quality', 'check_consistency', 'suggest_improvements'],
   },
   coordinator: {
     maxIterations: 20,
     timeoutMs: 300000,
     temperature: 0.5,
-    model: 'gpt-4o',
+    model: 'openai/gpt-4o',
     tools: ['manage_workflow', 'track_progress', 'handle_errors'],
+  },
+  htmlDesigner: {
+    maxIterations: 3,
+    timeoutMs: 30000,
+    temperature: 0.7,
+    model: 'openai/gpt-4o',
+    tools: ['design_layout', 'select_theme', 'plan_visual_hierarchy'],
+  },
+  htmlCreator: {
+    maxIterations: 3,
+    timeoutMs: 30000,
+    temperature: 0.3,
+    model: 'openai/gpt-4o',
+    tools: ['generate_html', 'apply_styles', 'create_responsive_layout'],
   },
 };
